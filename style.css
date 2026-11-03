@@ -1,0 +1,915 @@
+/* =========================================================================
+   SkillBridge — Refined Burgundy & Champagne Gold Design System (style.css)
+   Tokens:
+     - Deep burgundy background:         #2B0B16
+     - Dark wine sidebar:                #200810
+     - Burgundy plum cards:              #3A1422
+     - Muted burgundy borders:           #572536
+     - Champagne gold accents:           #D6B875
+     - Dusty rose secondary accents:     #C98F9E
+     - Warm ivory text:                  #F5EFE6
+     - Muted rose-gray secondary text:   #BFAAB2
+   ========================================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+/* -------------------------------------------------------------------------
+   1. GLOBAL RESET & FOUNDATION
+   ------------------------------------------------------------------------- */
+* {
+    box-sizing: border-box;
+}
+
+html, body, [class*="css"] {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Base application canvas: Deep burgundy background #2B0B16 */
+.stApp {
+    background-color: #2B0B16 !important;
+    background-image: 
+        radial-gradient(ellipse 70% 35% at 50% -4%, rgba(214, 184, 117, 0.08) 0%, transparent 65%),
+        linear-gradient(180deg, #2B0B16 0%, #260A13 60%, #200810 100%) !important;
+    background-attachment: fixed !important;
+    color: #F5EFE6 !important;
+    min-height: 100vh;
+}
+
+/* Eliminate AI-style glowing blobs & harsh keyframe animations */
+.stApp::before,
+.stApp::after,
+[data-testid="stAppViewContainer"]::before,
+[data-testid="stAppViewContainer"]::after {
+    display: none !important;
+    content: none !important;
+}
+
+/* -------------------------------------------------------------------------
+   2. HEADER & TOOLBAR
+   ------------------------------------------------------------------------- */
+header[data-testid="stHeader"],
+.stAppHeader,
+[data-testid="stHeader"] {
+    background: transparent !important;
+    box-shadow: none !important;
+    border-bottom: none !important;
+}
+
+[data-testid="stDecoration"] {
+    display: none !important;
+}
+
+[data-testid="stToolbar"] {
+    color: #D6B875 !important;
+}
+
+/* -------------------------------------------------------------------------
+   3. SIDEBAR NAVIGATION & PANEL (Dark Wine: #200810)
+   ------------------------------------------------------------------------- */
+[data-testid="stSidebar"] {
+    background: #200810 !important;
+    border-right: 1px solid #572536 !important;
+    box-shadow: 4px 0 28px rgba(0, 0, 0, 0.45) !important;
+}
+
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3 {
+    font-family: 'Cormorant Garamond', Georgia, serif !important;
+    font-size: 1.35rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.01em !important;
+    color: #F5EFE6 !important;
+    margin-bottom: 0.75rem !important;
+}
+
+[data-testid="stSidebar"] label {
+    font-size: 0.82rem !important;
+    font-weight: 600 !important;
+    color: #BFAAB2 !important;
+    letter-spacing: 0.01em !important;
+    margin-bottom: 5px !important;
+}
+
+/* -------------------------------------------------------------------------
+   4. FORM INPUTS (TEXTAREA, SELECT, NUMBER, DATE)
+   Burgundy plum surfaces (#3A1422), muted burgundy borders (#572536), gold focus.
+   ------------------------------------------------------------------------- */
+/* Textarea */
+div[data-baseweb="textarea"] {
+    background: #3A1422 !important;
+    background-color: #3A1422 !important;
+    border: 1px solid #572536 !important;
+    border-radius: 8px !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+div[data-baseweb="textarea"]:focus-within {
+    border-color: #D6B875 !important;
+    box-shadow: 0 0 0 2px rgba(214, 184, 117, 0.22) !important;
+}
+
+div[data-baseweb="textarea"] textarea,
+.stTextArea textarea,
+[data-testid="stTextArea"] textarea {
+    background: transparent !important;
+    background-color: transparent !important;
+    color: #F5EFE6 !important;
+    -webkit-text-fill-color: #F5EFE6 !important;
+    caret-color: #D6B875 !important;
+    font-size: 0.88rem !important;
+    line-height: 1.55 !important;
+    font-family: inherit !important;
+    padding: 10px 12px !important;
+}
+
+div[data-baseweb="textarea"] textarea::placeholder,
+.stTextArea textarea::placeholder {
+    color: #8C6B75 !important;
+    -webkit-text-fill-color: #8C6B75 !important;
+}
+
+/* Select Box */
+div[data-baseweb="select"],
+div[data-baseweb="select"] > div,
+[data-testid="stSelectbox"] div[data-baseweb="select"],
+[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
+    background: #3A1422 !important;
+    background-color: #3A1422 !important;
+    color: #F5EFE6 !important;
+    border: 1px solid #572536 !important;
+    border-radius: 8px !important;
+    font-size: 0.88rem !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+div[data-baseweb="select"]:focus-within,
+div[data-baseweb="select"] > div:focus {
+    border-color: #D6B875 !important;
+    box-shadow: 0 0 0 2px rgba(214, 184, 117, 0.22) !important;
+}
+
+div[data-baseweb="select"] span,
+div[data-baseweb="select"] div[aria-selected],
+div[data-baseweb="select"] div,
+div[data-baseweb="select"] input {
+    color: #F5EFE6 !important;
+    -webkit-text-fill-color: #F5EFE6 !important;
+    font-weight: 500 !important;
+}
+
+div[data-baseweb="select"] svg {
+    fill: #D6B875 !important;
+    color: #D6B875 !important;
+}
+
+/* Select Popover Menu */
+div[data-baseweb="popover"],
+div[data-baseweb="popover"] > div,
+ul[data-baseweb="menu"],
+[data-baseweb="menu"] {
+    background: #200810 !important;
+    background-color: #200810 !important;
+    border: 1px solid #572536 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6) !important;
+    padding: 5px !important;
+}
+
+li[data-baseweb="menu-item"],
+[data-baseweb="menu-item"] {
+    color: #F5EFE6 !important;
+    -webkit-text-fill-color: #F5EFE6 !important;
+    background: transparent !important;
+    padding: 8px 12px !important;
+    font-size: 0.88rem !important;
+    font-weight: 500 !important;
+    border-radius: 6px !important;
+    cursor: pointer !important;
+    transition: background 0.15s ease !important;
+}
+
+li[data-baseweb="menu-item"]:hover,
+li[data-baseweb="menu-item"][aria-selected="true"],
+[data-baseweb="menu-item"]:hover,
+[data-baseweb="menu-item"][aria-selected="true"] {
+    background: rgba(214, 184, 117, 0.15) !important;
+    color: #F5EFE6 !important;
+    -webkit-text-fill-color: #F5EFE6 !important;
+    font-weight: 600 !important;
+}
+
+/* Number & Date Inputs */
+div[data-baseweb="input"],
+div[data-baseweb="input"] > input {
+    background: #3A1422 !important;
+    border-color: #572536 !important;
+    color: #F5EFE6 !important;
+    -webkit-text-fill-color: #F5EFE6 !important;
+    border-radius: 8px !important;
+}
+
+div[data-baseweb="input"]:focus-within {
+    border-color: #D6B875 !important;
+    box-shadow: 0 0 0 2px rgba(214, 184, 117, 0.22) !important;
+}
+
+/* -------------------------------------------------------------------------
+   5. BUTTONS (Champagne Gold: #D6B875)
+   ------------------------------------------------------------------------- */
+button[kind="primary"],
+button[data-testid="stBaseButton-primary"],
+.stButton > button[kind="primary"] {
+    background: linear-gradient(180deg, #D6B875 0%, #C29E57 100%) !important;
+    color: #200810 !important;
+    -webkit-text-fill-color: #200810 !important;
+    border: 1px solid rgba(245, 239, 230, 0.3) !important;
+    border-radius: 8px !important;
+    font-weight: 700 !important;
+    font-size: 0.9rem !important;
+    letter-spacing: 0.02em !important;
+    padding: 8px 18px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35) !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+button[kind="primary"]:hover,
+button[data-testid="stBaseButton-primary"]:hover,
+.stButton > button[kind="primary"]:hover {
+    background: linear-gradient(180deg, #E2C78A 0%, #CEA963 100%) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 14px rgba(214, 184, 117, 0.35) !important;
+    border-color: #F5EFE6 !important;
+}
+
+button[kind="secondary"],
+button[data-testid="stBaseButton-secondary"],
+.stButton > button:not([kind="primary"]) {
+    background: #3A1422 !important;
+    color: #F5EFE6 !important;
+    -webkit-text-fill-color: #F5EFE6 !important;
+    border: 1px solid #572536 !important;
+    border-radius: 8px !important;
+    font-weight: 500 !important;
+    font-size: 0.88rem !important;
+    transition: all 0.2s ease !important;
+}
+
+button[kind="secondary"]:hover,
+.stButton > button:not([kind="primary"]):hover {
+    background: #4A1B2D !important;
+    color: #F5EFE6 !important;
+    border-color: #D6B875 !important;
+}
+
+/* -------------------------------------------------------------------------
+   6. HERO SECTION & TYPOGRAPHY HIERARCHY
+   Serif brand headers, champagne badges, warm ivory headings, muted rose-gray text.
+   ------------------------------------------------------------------------- */
+.hero-container {
+    padding: 8px 0 22px 0;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #572536;
+}
+
+.hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(214, 184, 117, 0.1);
+    border: 1px solid rgba(214, 184, 117, 0.3);
+    border-radius: 16px;
+    padding: 3px 12px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #D6B875;
+    margin-bottom: 10px;
+}
+
+.hero-title {
+    font-family: 'Cormorant Garamond', Georgia, serif !important;
+    font-size: 2.5rem !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.01em !important;
+    color: #F5EFE6 !important;
+    margin: 0 0 6px 0 !important;
+    line-height: 1.15 !important;
+}
+
+.hero-subtitle {
+    font-size: 0.94rem !important;
+    font-weight: 400 !important;
+    color: #BFAAB2 !important;
+    max-width: 780px;
+    line-height: 1.6 !important;
+    margin: 0 !important;
+}
+
+h1, h2, h3, h4, [data-testid="stHeading"] {
+    color: #F5EFE6 !important;
+    -webkit-text-fill-color: #F5EFE6 !important;
+    letter-spacing: -0.01em !important;
+}
+
+h2 {
+    font-family: 'Cormorant Garamond', Georgia, serif !important;
+    font-size: 1.65rem !important;
+    font-weight: 700 !important;
+    color: #F5EFE6 !important;
+    margin-top: 0.5rem !important;
+    margin-bottom: 0.35rem !important;
+}
+
+h3 {
+    font-size: 1.15rem !important;
+    font-weight: 600 !important;
+    color: #F5EFE6 !important;
+}
+
+h4 {
+    font-size: 0.98rem !important;
+    font-weight: 600 !important;
+    color: #D6B875 !important;
+}
+
+p, span, label, [data-testid="stMarkdownContainer"] {
+    color: #F5EFE6;
+    line-height: 1.55;
+}
+
+[data-testid="stCaptionContainer"] p, .stCaption {
+    color: #BFAAB2 !important;
+    font-size: 0.82rem !important;
+}
+
+/* -------------------------------------------------------------------------
+   7. NAVIGATION TABS (SEGMENTED PILL BAR)
+   ------------------------------------------------------------------------- */
+[data-baseweb="tab-list"] {
+    background: #200810 !important;
+    border: 1px solid #572536 !important;
+    border-radius: 10px !important;
+    padding: 5px !important;
+    gap: 6px !important;
+    margin-bottom: 20px !important;
+}
+
+[data-baseweb="tab"] {
+    color: #BFAAB2 !important;
+    background: transparent !important;
+    border-radius: 7px !important;
+    padding: 8px 18px !important;
+    font-size: 0.88rem !important;
+    font-weight: 500 !important;
+    border-bottom: none !important;
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+[data-baseweb="tab"]:hover {
+    color: #F5EFE6 !important;
+    background: rgba(214, 184, 117, 0.08) !important;
+}
+
+[data-baseweb="tab"][aria-selected="true"] {
+    background: rgba(214, 184, 117, 0.15) !important;
+    color: #D6B875 !important;
+    border: 1px solid rgba(214, 184, 117, 0.35) !important;
+    font-weight: 600 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+}
+
+[data-baseweb="tab-highlight"] {
+    display: none !important;
+}
+
+/* -------------------------------------------------------------------------
+   8. METRIC CARDS (Burgundy Plum Cards: #3A1422, Muted Borders: #572536)
+   ------------------------------------------------------------------------- */
+[data-testid="stMetric"] {
+    background: #3A1422 !important;
+    border: 1px solid #572536 !important;
+    border-radius: 10px !important;
+    padding: 16px 20px !important;
+    transition: transform 0.18s ease, border-color 0.18s ease !important;
+}
+
+[data-testid="stMetric"]:hover {
+    transform: translateY(-2px);
+    border-color: #D6B875 !important;
+}
+
+[data-testid="stMetricLabel"] p {
+    color: #BFAAB2 !important;
+    font-size: 0.76rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.05em !important;
+    text-transform: uppercase !important;
+}
+
+[data-testid="stMetricValue"] {
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 1.85rem !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.02em !important;
+}
+
+/* Column 1: Coverage Score - Champagne Gold */
+div[data-testid="column"]:nth-of-type(1) [data-testid="stMetric"],
+div[data-testid="stColumn"]:nth-of-type(1) [data-testid="stMetric"] {
+    border-left: 3px solid #D6B875 !important;
+}
+
+div[data-testid="column"]:nth-of-type(1) [data-testid="stMetricValue"],
+div[data-testid="stColumn"]:nth-of-type(1) [data-testid="stMetricValue"] {
+    color: #D6B875 !important;
+}
+
+/* Column 2: Skills Known - Dusty Rose */
+div[data-testid="column"]:nth-of-type(2) [data-testid="stMetric"],
+div[data-testid="stColumn"]:nth-of-type(2) [data-testid="stMetric"] {
+    border-left: 3px solid #C98F9E !important;
+}
+
+div[data-testid="column"]:nth-of-type(2) [data-testid="stMetricValue"],
+div[data-testid="stColumn"]:nth-of-type(2) [data-testid="stMetricValue"] {
+    color: #C98F9E !important;
+}
+
+/* Column 3: Skills Missing - Rose Wine Accent */
+div[data-testid="column"]:nth-of-type(3) [data-testid="stMetric"],
+div[data-testid="stColumn"]:nth-of-type(3) [data-testid="stMetric"] {
+    border-left: 3px solid #E27387 !important;
+}
+
+div[data-testid="column"]:nth-of-type(3) [data-testid="stMetricValue"],
+div[data-testid="stColumn"]:nth-of-type(3) [data-testid="stMetricValue"] {
+    color: #E27387 !important;
+}
+
+/* Progress Bar */
+.stProgress > div > div > div > div {
+    background: linear-gradient(90deg, #572536 0%, #C98F9E 50%, #D6B875 100%) !important;
+    border-radius: 6px !important;
+}
+
+.stProgress > div > div {
+    background: #200810 !important;
+    border: 1px solid #572536 !important;
+    border-radius: 6px !important;
+    height: 8px !important;
+}
+
+/* -------------------------------------------------------------------------
+   9. ROADMAP CARDS & LEARNING JOURNEY
+   Card surface: #3A1422, Border: #572536, Left Accent: #D6B875 / #C98F9E
+   ------------------------------------------------------------------------- */
+[data-testid="stVerticalBlockBorderWrapper"] > div {
+    background: #3A1422 !important;
+    border: 1px solid #572536 !important;
+    border-radius: 10px !important;
+    padding: 16px 20px !important;
+    margin-bottom: 12px !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+[data-testid="stVerticalBlockBorderWrapper"] > div:hover {
+    background: #441828 !important;
+    border-color: #D6B875 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Status Left Accents */
+/* Core: Champagne Gold */
+[data-testid="stVerticalBlockBorderWrapper"]:has(.status-core) > div,
+[data-testid="stVerticalBlockBorderWrapper"] > div:has(.status-core) {
+    border-left: 3px solid #D6B875 !important;
+}
+
+/* Prerequisite: Amber / Gold Ochre */
+[data-testid="stVerticalBlockBorderWrapper"]:has(.status-prerequisite) > div,
+[data-testid="stVerticalBlockBorderWrapper"] > div:has(.status-prerequisite) {
+    border-left: 3px solid #E69A48 !important;
+}
+
+/* Optional: Dusty Rose */
+[data-testid="stVerticalBlockBorderWrapper"]:has(.status-optional) > div,
+[data-testid="stVerticalBlockBorderWrapper"] > div:has(.status-optional) {
+    border-left: 3px solid #C98F9E !important;
+}
+
+/* Status Badges */
+span[data-testid*="stMarkdownColor-blue"],
+[data-testid="stVerticalBlockBorderWrapper"]:has(.status-core) [data-testid="column"]:last-child [data-testid="stMarkdownContainer"] span:first-of-type {
+    background: rgba(214, 184, 117, 0.15) !important;
+    color: #D6B875 !important;
+    -webkit-text-fill-color: #D6B875 !important;
+    border: 1px solid rgba(214, 184, 117, 0.35) !important;
+    border-radius: 6px !important;
+    padding: 2px 10px !important;
+    font-size: 0.76rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.02em !important;
+    display: inline-block !important;
+}
+
+span[data-testid*="stMarkdownColor-orange"],
+[data-testid="stVerticalBlockBorderWrapper"]:has(.status-prerequisite) [data-testid="column"]:last-child [data-testid="stMarkdownContainer"] span:first-of-type {
+    background: rgba(230, 154, 72, 0.15) !important;
+    color: #F0A752 !important;
+    -webkit-text-fill-color: #F0A752 !important;
+    border: 1px solid rgba(230, 154, 72, 0.4) !important;
+    border-radius: 6px !important;
+    padding: 2px 10px !important;
+    font-size: 0.76rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.02em !important;
+    display: inline-block !important;
+}
+
+span[data-testid*="stMarkdownColor-green"],
+[data-testid="stVerticalBlockBorderWrapper"]:has(.status-optional) [data-testid="column"]:last-child [data-testid="stMarkdownContainer"] span:first-of-type {
+    background: rgba(201, 143, 158, 0.15) !important;
+    color: #C98F9E !important;
+    -webkit-text-fill-color: #C98F9E !important;
+    border: 1px solid rgba(201, 143, 158, 0.35) !important;
+    border-radius: 6px !important;
+    padding: 2px 10px !important;
+    font-size: 0.76rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.02em !important;
+    display: inline-block !important;
+}
+
+/* Hide internal status marker elements cleanly */
+.status-core,
+.status-prerequisite,
+.status-optional {
+    display: none !important;
+}
+
+div:has(> .status-core),
+div:has(> .status-prerequisite),
+div:has(> .status-optional) {
+    margin: 0 !important;
+    padding: 0 !important;
+    height: 0 !important;
+}
+
+/* Resource Link Button */
+[data-testid="stLinkButton"] a {
+    background: #200810 !important;
+    color: #F5EFE6 !important;
+    border: 1px solid #572536 !important;
+    border-radius: 7px !important;
+    padding: 6px 12px !important;
+    font-size: 0.82rem !important;
+    font-weight: 500 !important;
+    text-decoration: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.18s ease !important;
+}
+
+[data-testid="stLinkButton"] a:hover {
+    background: #3A1422 !important;
+    color: #D6B875 !important;
+    border-color: #D6B875 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* -------------------------------------------------------------------------
+   10. DATA TABLES & DATAFRAMES
+   ------------------------------------------------------------------------- */
+[data-testid="stTable"],
+[data-testid="stDataFrame"] {
+    background: #3A1422 !important;
+    border: 1px solid #572536 !important;
+    border-radius: 10px !important;
+    overflow: hidden !important;
+}
+
+table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+}
+
+thead tr th {
+    background: #200810 !important;
+    color: #D6B875 !important;
+    font-size: 0.76rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    padding: 10px 14px !important;
+    border-bottom: 1px solid #572536 !important;
+}
+
+tbody tr td {
+    color: #F5EFE6 !important;
+    font-size: 0.86rem !important;
+    padding: 9px 14px !important;
+    border-bottom: 1px solid #572536 !important;
+}
+
+tbody tr:hover {
+    background: #441828 !important;
+}
+
+/* -------------------------------------------------------------------------
+   11. CHARTS & VEGA-LITE (MARKET DEMAND READABILITY)
+   Warm ivory labels, muted burgundy gridlines, champagne gold bars (#D6B875).
+   ------------------------------------------------------------------------- */
+[data-testid="stVegaLiteChart"] {
+    background: #3A1422 !important;
+    border: 1px solid #572536 !important;
+    border-radius: 10px !important;
+    padding: 16px !important;
+}
+
+[data-testid="stVegaLiteChart"] svg text {
+    fill: #F5EFE6 !important;
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+}
+
+[data-testid="stVegaLiteChart"] svg line[aria-hidden="true"],
+[data-testid="stVegaLiteChart"] svg .role-axis line {
+    stroke: #572536 !important;
+}
+
+[data-testid="stVegaLiteChart"] svg .role-axis path {
+    stroke: #572536 !important;
+}
+
+/* Highlight summary pills strip */
+.chart-highlight-strip {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.chart-highlight-pill {
+    background: #3A1422;
+    border: 1px solid #572536;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 0.82rem;
+    color: #BFAAB2;
+}
+
+.chart-highlight-pill strong {
+    color: #D6B875;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* -------------------------------------------------------------------------
+   12. EMPTY STATE CARD
+   ------------------------------------------------------------------------- */
+.empty-state-card {
+    background: #3A1422;
+    border: 1px dashed #572536;
+    border-radius: 10px;
+    padding: 36px 24px;
+    text-align: center;
+    max-width: 680px;
+    margin: 28px auto;
+}
+
+.empty-state-icon {
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+    color: #D6B875;
+}
+
+.empty-state-card h3 {
+    font-family: 'Cormorant Garamond', Georgia, serif !important;
+    font-size: 1.35rem !important;
+    font-weight: 700 !important;
+    color: #F5EFE6 !important;
+    margin: 0 0 6px 0 !important;
+}
+
+.empty-state-card p {
+    font-size: 0.88rem !important;
+    color: #BFAAB2 !important;
+    margin: 0 !important;
+    line-height: 1.6 !important;
+}
+
+/* -------------------------------------------------------------------------
+   13. STUDY PLANNER, TASK CHECKLIST & CHAT ASSISTANT
+   ------------------------------------------------------------------------- */
+/* Schedule KPI Summary Box */
+.schedule-summary-strip {
+    display: flex;
+    gap: 14px;
+    margin: 16px 0 20px 0;
+    flex-wrap: wrap;
+}
+
+.schedule-summary-card {
+    flex: 1;
+    min-width: 150px;
+    background: #3A1422;
+    border: 1px solid #572536;
+    border-left: 3px solid #D6B875;
+    border-radius: 8px;
+    padding: 12px 16px;
+}
+
+.schedule-summary-card .label {
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #BFAAB2;
+    margin-bottom: 4px;
+}
+
+.schedule-summary-card .value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #D6B875;
+}
+
+/* Expanders (Weekly Schedule Groupings) */
+[data-testid="stExpander"] {
+    background: #3A1422 !important;
+    border: 1px solid #572536 !important;
+    border-radius: 8px !important;
+    margin-bottom: 10px !important;
+}
+
+[data-testid="stExpander"] summary {
+    color: #F5EFE6 !important;
+    font-weight: 600 !important;
+    padding: 10px 14px !important;
+}
+
+[data-testid="stExpander"] summary:hover {
+    color: #D6B875 !important;
+}
+
+/* Checkboxes */
+[data-testid="stCheckbox"] label span {
+    color: #F5EFE6 !important;
+    font-size: 0.88rem !important;
+}
+
+[data-testid="stCheckbox"] div[role="checkbox"] {
+    border-color: #572536 !important;
+    background-color: #200810 !important;
+}
+
+[data-testid="stCheckbox"] div[aria-checked="true"] {
+    background-color: #D6B875 !important;
+    border-color: #D6B875 !important;
+}
+
+/* Chat Assistant Messages */
+[data-testid="stChatMessage"] {
+    background: #3A1422 !important;
+    border: 1px solid #572536 !important;
+    border-radius: 8px !important;
+    padding: 12px 16px !important;
+    margin-bottom: 10px !important;
+}
+
+[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) {
+    border-left: 3px solid #D6B875 !important;
+    background: #441828 !important;
+}
+
+[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) {
+    border-left: 3px solid #C98F9E !important;
+}
+
+div[data-testid="stChatInput"] {
+    border-radius: 8px !important;
+    border: 1px solid #572536 !important;
+    background: #3A1422 !important;
+}
+
+div[data-testid="stChatInput"]:focus-within {
+    border-color: #D6B875 !important;
+    box-shadow: 0 0 0 2px rgba(214, 184, 117, 0.22) !important;
+}
+
+/* -------------------------------------------------------------------------
+   14. CUSTOM SCROLLBAR & SELECTION
+   ------------------------------------------------------------------------- */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #200810;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #572536;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #D6B875;
+}
+
+::selection {
+    background: rgba(214, 184, 117, 0.35);
+    color: #F5EFE6;
+}
+
+hr {
+    border-color: #572536 !important;
+    margin: 24px 0 !important;
+}
+
+/* -------------------------------------------------------------------------
+   15. AUTHENTICATION & USER PROFILE CARDS (Burgundy & Gold Theme)
+   ------------------------------------------------------------------------- */
+.auth-wrapper {
+    max-width: 520px;
+    margin: 24px auto 40px auto;
+}
+
+.auth-header-card {
+    text-align: center;
+    background: #3A1422;
+    border: 1px solid #572536;
+    border-radius: 10px 10px 0 0;
+    padding: 24px 28px 16px 28px;
+    border-bottom: 1px solid #572536;
+}
+
+.auth-header-title {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #D6B875;
+    margin: 0 0 6px 0;
+    letter-spacing: -0.01em;
+}
+
+.auth-header-caption {
+    font-size: 0.88rem;
+    color: #BFAAB2;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.user-session-card {
+    background: #2D0F1C;
+    border: 1px solid #572536;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.user-badge {
+    display: inline-block;
+    align-self: flex-start;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #D6B875;
+    background: rgba(214, 184, 117, 0.12);
+    border: 1px solid rgba(214, 184, 117, 0.25);
+    border-radius: 4px;
+    padding: 2px 7px;
+}
+
+.user-email {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #F5EFE6;
+    word-break: break-all;
+}
+
+.auth-config-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    color: #BFAAB2;
+    background: rgba(87, 37, 54, 0.4);
+    border: 1px solid #572536;
+    border-radius: 12px;
+    padding: 3px 10px;
+    margin-bottom: 12px;
+}
+

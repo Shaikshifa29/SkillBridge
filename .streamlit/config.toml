@@ -1,0 +1,18 @@
+# Streamlit Theme Configuration
+# Refined Deep Burgundy & Champagne Gold Design System
+
+[theme]
+# Primary accent color (Champagne Gold)
+primaryColor = "#D6B875"
+
+# Main application background color (Deep Burgundy)
+backgroundColor = "#2B0B16"
+
+# Secondary background for sidebar and card surfaces (Dark Wine)
+secondaryBackgroundColor = "#200810"
+
+# Main text color (Warm Ivory)
+textColor = "#F5EFE6"
+
+# Font family
+font = "sans serif"

@@ -1,0 +1,139 @@
+================================================================================
+STEP 0: VERIFICATION OF 'R' AS EXACT TOKEN IN KEPT ROWS
+================================================================================
+Total Kept Job Postings: 47
+Postings with exact 'r' token: 47 out of 47 (100.0%)
+
+3 Sample Raw Skills Strings Containing 'R':
+--------------------------------------------------------------------------------
+[1] Python; Java; C++; R; Supervised/Unsupervised Learning; Regression; Classification; Clustering; TensorFlow; PyTorch; Keras; Scikit-learn; Neural Networks; OpenCV; NLTK; Pandas; NumPy; SQL; MongoDB; NoSQL
+
+[2] Python; Java; C++; R; Classification; Regression; Clustering; TensorFlow; PyTorch; Keras; Scikit-learn; Neural Networks; OpenCV; NLTK; Pandas; NumPy; SQL; MongoDB
+
+[3] Python; Java; C++; R; Supervised/Unsupervised Learning; Regression; Classification; Clustering; TensorFlow; PyTorch; Keras; Scikit-learn; Neural Networks; OpenCV; NLTK; Pandas; NumPy; SQL; MongoDB
+
+================================================================================
+
+=================================================================
+MODULE 3: SKILL GAP ANALYSIS SETUP
+=================================================================
+Choose the comparison target group:
+  1. All Roles (AI / ML / Data Science - N=47)
+  2. Fresher Only (Entry-Level / Fresher - N=14)
+Enter 1 or 2 (Press Enter to default to 2 [Fresher Only]): 
+Enter your skills (comma-separated).
+Example: Python, sklearn, mysql, Pandas, Matplotlib, git/github, Docker, LangChain, Quantum Computing
+Press Enter to use hardcoded test skills: 
+===========================================================================
+MODULE 3: SKILL GAP ANALYSIS REPORT
+Target Group: All Kept Roles (Total Postings: 47)
+===========================================================================
+
+[1] Your Cleaned & Normalized Skills (6 total):
+    docker, pandas, python, scikit-learn, sql, tensorflow
+
+[2] Top 15 Coverage Score:
+    -> 4 out of 15 Top Skills Known (26.7%)
+
+[3] Skills You Have (Matched in Top 15):
+---------------------------------------------------------------------------
+    Rank   | Skill Name                   | Market Demand %
+    -------------------------------------------------------
+    #1     | python                       | 100.0%
+    #5     | scikit-learn                 |  66.0%
+    #6     | sql                          |  66.0%
+    #7     | tensorflow                   |  66.0%
+
+[4] Skills You Are Missing (Ordered by Market Demand %):
+---------------------------------------------------------------------------
+    Rank   | Missing Skill Name           | Market Demand %
+    -------------------------------------------------------
+    #2     | r                            | 100.0%
+    #3     | java                         |  66.0%
+    #4     | pytorch                      |  66.0%
+    #8     | keras                        |  55.3%
+    #9     | classification               |  53.2%
+    #10    | regression                   |  53.2%
+    #11    | hadoop                       |  51.1%
+    #12    | nlp                          |  51.1%
+    #13    | spark                        |  48.9%
+    #14    | clustering                   |  46.8%
+    #15    | deep learning                |  42.6%
+
+[5] Typed Skills NOT Found Anywhere in Dataset:
+---------------------------------------------------------------------------
+    (None - all your typed skills exist in the dataset)
+
+[6] Other Skills You Have (Found in dataset, but outside Top 15):
+---------------------------------------------------------------------------
+    docker, pandas
+
+===========================================================================
+
+
+================================================================================
+MODULE 4: PERSONALIZED LEARNING ROADMAP
+Target Career Group: All Kept Roles (Total Postings: 47)
+Ordering Rule: Prerequisites First -> Highest Market Demand % Ties Broken
+================================================================================
+
+[!] Note: 2 prerequisite skill(s) were automatically added
+    to your roadmap because advanced skills depend on them:
+    -> basic ml, numpy
+
+================================================================================
+PART 1: MAIN ROADMAP (Core AI/ML & Data Science Track)
+================================================================================
+Step   | Skill to Learn             | Demand %   | Status
+--------------------------------------------------------------------------------
+Step 1  | keras                      |  55.3%     | [Top 15 Missing]
+       -> Free Resource: Keras.io Official Code Examples & Guide
+       -------------------------------------------------------------------------
+Step 2  | deep learning              |  42.6%     | [Top 15 Missing]
+       -> Free Resource: Fast.ai Practical Deep Learning for Coders
+       -------------------------------------------------------------------------
+Step 3  | pytorch                    |  66.0%     | [Top 15 Missing]
+       -> Free Resource: Official PyTorch Tutorials & 60-Minute Blitz
+       -------------------------------------------------------------------------
+Step 4  | nlp                        |  51.1%     | [Top 15 Missing]
+       -> Free Resource: Hugging Face NLP Course (Free Community Edition)
+       -------------------------------------------------------------------------
+Step 5  | numpy                      |  36.2%     | [Prerequisite Added]
+       -> Free Resource: NumPy Official User Guide & Quickstart
+       -------------------------------------------------------------------------
+Step 6  | basic ml                   |  12.8%     | [Prerequisite Added]
+       -> Free Resource: Google Machine Learning Crash Course
+       -------------------------------------------------------------------------
+Step 7  | classification             |  53.2%     | [Top 15 Missing]
+       -> Free Resource: StatQuest: Classification Fundamentals Video Series
+       -------------------------------------------------------------------------
+Step 8  | regression                 |  53.2%     | [Top 15 Missing]
+       -> Free Resource: StatQuest: Linear and Logistic Regression Video Series
+       -------------------------------------------------------------------------
+Step 9  | clustering                 |  46.8%     | [Top 15 Missing]
+       -> Free Resource: Stanford University CS229: Unsupervised Learning Notes
+       -------------------------------------------------------------------------
+
+================================================================================
+PART 2: OPTIONAL / SPECIALIZED STACK (Alternative Languages & Big Data)
+Note: Ordered by Market Demand % (Study as needed for specialized roles)
+================================================================================
+Item   | Optional Skill             | Demand %   | Status
+--------------------------------------------------------------------------------
+Opt 1   | r                          | 100.0%     | [Optional]
+       -> Free Resource: R for Data Science Book (by Hadley Wickham)
+       -------------------------------------------------------------------------
+Opt 2   | java                       |  66.0%     | [Optional]
+       -> Free Resource: Oracle Official Java Tutorials
+       -------------------------------------------------------------------------
+Opt 3   | hadoop                     |  51.1%     | [Optional]
+       -> Free Resource: Apache Hadoop Official Documentation & MapReduce Tutorial
+       -------------------------------------------------------------------------
+Opt 4   | spark                      |  48.9%     | [Optional]
+       -> Free Resource: Databricks Spark: The Definitive Guide (Free Community Excerpts)
+       -------------------------------------------------------------------------
+
+================================================================================
+Roadmap complete! Study each skill step-by-step to bridge your career gap.
+================================================================================
+
