@@ -1,7 +1,32 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.mypy_cache/
+
+# Virtual environments
 .venv/
 venv/
-__pycache__/
+ENV/
+env/
+
+# Streamlit secrets and private credentials (CRITICAL)
 .streamlit/secrets.toml
 .env
+.env.*
+*.env
+
+# SQLite local databases and test data
 *.db
 *.sqlite
+*.sqlite3
+
+# OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log

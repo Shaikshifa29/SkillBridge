@@ -192,7 +192,43 @@ CREATE POLICY "Users can delete own chat"
     USING (auth.uid() = user_id);
 
 
--- 6. AUTOMATIC PROFILE CREATION TRIGGER ON SIGNUP
+-- 6. ASSISTANT SETTINGS TABLE (ARIS Customization & Display Name)
+CREATE TABLE IF NOT EXISTS public.assistant_settings (
+    id BIGSERIAL PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    assistant_name TEXT DEFAULT 'Aris',
+    avatar_type TEXT DEFAULT 'aris_nexus',
+    custom_avatar_path TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT assistant_settings_user_id_key UNIQUE (user_id)
+);
+
+-- Enable RLS for assistant_settings
+ALTER TABLE public.assistant_settings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view own assistant settings" ON public.assistant_settings;
+CREATE POLICY "Users can view own assistant settings"
+    ON public.assistant_settings FOR SELECT
+    USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert own assistant settings" ON public.assistant_settings;
+CREATE POLICY "Users can insert own assistant settings"
+    ON public.assistant_settings FOR INSERT
+    WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update own assistant settings" ON public.assistant_settings;
+CREATE POLICY "Users can update own assistant settings"
+    ON public.assistant_settings FOR UPDATE
+    USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete own assistant settings" ON public.assistant_settings;
+CREATE POLICY "Users can delete own assistant settings"
+    ON public.assistant_settings FOR DELETE
+    USING (auth.uid() = user_id);
+
+
+-- 7. AUTOMATIC PROFILE CREATION TRIGGER ON SIGNUP
 -- Automatically creates a matching public.profiles row when a new user signs up in auth.users
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
@@ -208,4 +244,3 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
-

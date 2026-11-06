@@ -98,34 +98,11 @@ PREREQUISITES = {
 }
 
 
-# Step 2: High-quality learning resources dictionary mapping skill -> (title, url)
-# Using ONLY the specified URLs and describing what the link opens.
-RESOURCES = {
-    "python": ("Python 3 Official Tutorial - Beginners Guide", "https://docs.python.org/3/tutorial/"),
-    "numpy": ("NumPy Quickstart Tutorial - Official Guide", "https://numpy.org/doc/stable/user/quickstart.html"),
-    "pandas": ("10 Minutes to Pandas - Official User Guide", "https://pandas.pydata.org/docs/user_guide/10min.html"),
-    "sql": ("SQLBolt - Interactive SQL Lessons & Exercises", "https://sqlbolt.com/"),
-    "scikit-learn": ("Scikit-Learn User Guide - Machine Learning in Python", "https://scikit-learn.org/stable/user_guide.html"),
-    "basic ml": ("Google Machine Learning Crash Course", "https://developers.google.com/machine-learning/crash-course"),
-    "classification": ("Supervised Learning & Classification - Scikit-Learn Documentation", "https://scikit-learn.org/stable/supervised_learning.html"),
-    "regression": ("Linear Models & Regression - Scikit-Learn Documentation", "https://scikit-learn.org/stable/modules/linear_model.html"),
-    "clustering": ("Clustering Algorithms - Scikit-Learn Documentation", "https://scikit-learn.org/stable/modules/clustering.html"),
-    "decision trees": ("Decision Trees - Scikit-Learn Documentation", "https://scikit-learn.org/stable/modules/tree.html"),
-    "data preprocessing": ("Preprocessing Data - Scikit-Learn Documentation", "https://scikit-learn.org/stable/modules/preprocessing.html"),
-    "deep learning": ("Practical Deep Learning for Coders - Fast.ai Course", "https://course.fast.ai/"),
-    "pytorch": ("PyTorch Tutorials - Official PyTorch Documentation", "https://pytorch.org/tutorials/"),
-    "tensorflow": ("TensorFlow 2 Quickstart for Beginners - Official Tutorial", "https://www.tensorflow.org/tutorials/quickstart/beginner"),
-    "keras": ("Getting Started with Keras - Official Guide", "https://keras.io/getting_started/"),
-    "nlp": ("Hugging Face NLP Course - Natural Language Processing", "https://huggingface.co/learn/nlp-course"),
-    "matplotlib": ("Matplotlib Tutorials - Official Pyplot & Visualization Guide", "https://matplotlib.org/stable/tutorials/index.html"),
-    "seaborn": ("Seaborn Tutorial - Statistical Data Visualization", "https://seaborn.pydata.org/tutorial.html"),
-    "git": ("Pro Git Book - Version Control with Git", "https://git-scm.com/book/en/v2"),
-    "docker": ("Docker Get Started Guide - Containerization Fundamentals", "https://docs.docker.com/get-started/"),
-    "java": ("The Java Tutorials - Official Oracle Documentation", "https://docs.oracle.com/javase/tutorial/"),
-    "hadoop": ("Apache Hadoop Documentation - MapReduce & HDFS", "https://hadoop.apache.org/docs/stable/"),
-    "spark": ("Apache Spark Quick Start - Official Cluster Computing Guide", "https://spark.apache.org/docs/latest/quick-start.html"),
-    "r": ("R for Data Science Book (2e) - Online Book by Hadley Wickham", "https://r4ds.hadley.nz/"),
-}
+import career_roles
+
+# Master learning resources dictionary mapping skill -> (title, url)
+# Merges career roles master verified resources with base resources
+RESOURCES = {**career_roles.LEARNING_RESOURCES}
 
 # Backwards compatibility dictionary containing just resource titles
 FREE_RESOURCES = {skill: title for skill, (title, url) in RESOURCES.items()}
@@ -144,19 +121,11 @@ __all__ = [
 
 def get_skill_resource(skill_name):
     """
-    Look up learning resource (title, url) for a skill.
-    If the skill is in RESOURCES, returns (title, url).
-    If not in RESOURCES, returns a Google search fallback link.
+    Look up learning resource (title, url) for a skill from career_roles repository.
+    Returns verified, authoritative clickable link for each specific topic.
     """
-    skill_key = skill_name.strip().lower()
-    if skill_key in RESOURCES:
-        return RESOURCES[skill_key]
+    return career_roles.get_skill_resource(skill_name)
 
-    # Fallback for skills not in RESOURCES dict: Google search for "<skill> tutorial for beginners"
-    encoded_query = urllib.parse.quote(f"{skill_key} tutorial for beginners")
-    fallback_url = f"https://www.google.com/search?q={encoded_query}"
-    fallback_title = f"{skill_name.title()} Tutorial for Beginners (Google Search)"
-    return fallback_title, fallback_url
 
 # Change 1: Set of optional / specialized skills (alternative language & Big Data stack).
 # These skills are moved into an [Optional] group printed after the main roadmap,

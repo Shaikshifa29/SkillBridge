@@ -6,6 +6,7 @@ import streamlit as st
 import pandas as pd
 import datetime
 import importlib
+import os
 
 import module2_skill_demand as m2
 import module3_gap_analysis as m3
@@ -13,6 +14,8 @@ import module4_roadmap as m4
 import planner
 import database
 import supabase_auth
+import aris_assistant
+import career_roles
 
 # Explicitly reload backend modules so long-running Streamlit servers
 # reload newly defined module-level attributes without process restart.
@@ -20,6 +23,9 @@ importlib.reload(m4)
 importlib.reload(planner)
 importlib.reload(database)
 importlib.reload(supabase_auth)
+importlib.reload(aris_assistant)
+importlib.reload(career_roles)
+
 
 # Initialize multi-tenant persistent database schema
 database.init_db()
@@ -137,6 +143,15 @@ def handle_task_toggle(task_id: str):
 if "authenticated_user" not in st.session_state:
     st.session_state["authenticated_user"] = None
 
+# Restore authenticated session across page reloads / reopen
+if st.session_state["authenticated_user"] is None:
+    session_token = st.query_params.get("session")
+    if session_token:
+        restored = database.get_user_session(session_token)
+        if restored:
+            st.session_state["authenticated_user"] = restored
+            st.session_state["_active_user_id"] = restored["id"]
+
 # Hero section (always visible)
 st.markdown("""
 <div class="hero-container">
@@ -188,33 +203,83 @@ if st.session_state["authenticated_user"] is None:
                     if success and user_obj:
                         st.session_state["authenticated_user"] = user_obj
                         st.session_state["_active_user_id"] = user_obj["id"]
+                        st.session_state["_last_signin_email"] = None
+                        st.session_state["_signin_unconfirmed"] = False
+
+                        # Persist session token for page refreshes
+                        token = database.create_user_session(user_obj)
+                        st.query_params["session"] = token
+
                         st.success("Signed in successfully! Loading your workspace...")
                         st.rerun()
                     else:
                         st.error(msg)
+                        if user_obj and user_obj.get("pending_verification"):
+                            st.session_state["_signin_unconfirmed"] = True
+                            st.session_state["_last_signin_email"] = supabase_auth.sanitize_email(signin_email)
+
+            # Actionable Resend Confirmation Button if email is unconfirmed
+            if st.session_state.get("_signin_unconfirmed") and st.session_state.get("_last_signin_email"):
+                st.info(f"Need another verification link for **{st.session_state['_last_signin_email']}**?")
+                if st.button("Resend Confirmation Email", key="btn_resend_confirm"):
+                    ok_resend, resend_msg = supabase_auth.resend_confirmation(st.session_state["_last_signin_email"])
+                    if ok_resend:
+                        st.success(resend_msg)
+                        st.session_state["_signin_unconfirmed"] = False
+                    else:
+                        st.error(resend_msg)
 
         # TAB: Create Account
         with auth_tab_signup:
             with st.form("signup_form", clear_on_submit=False):
                 st.write("")
+                signup_full_name = st.text_input("Full Name", placeholder="e.g. Alex Johnson")
                 signup_email = st.text_input("Email Address", placeholder="name@domain.com")
                 signup_password = st.text_input("Create Password", type="password", placeholder="Minimum 6 characters")
                 signup_confirm = st.text_input("Confirm Password", type="password", placeholder="Repeat your password")
                 signup_submit = st.form_submit_button("Create Account", type="primary", use_container_width=True)
 
                 if signup_submit:
-                    if signup_password != signup_confirm:
+                    clean_full_name = (signup_full_name or "").strip()
+                    clean_signup_email = supabase_auth.sanitize_email(signup_email)
+                    if not clean_full_name:
+                        st.error("Please enter your full name.")
+                    elif not clean_signup_email or not supabase_auth.is_valid_email_format(clean_signup_email):
+                        st.error("Please enter a valid email address (e.g. name@domain.com).")
+                    elif len(signup_password) < 6:
+                        st.error("Password must be at least 6 characters long.")
+                    elif signup_password != signup_confirm:
                         st.error("Passwords do not match. Please try again.")
                     else:
-                        success, msg, user_obj = supabase_auth.sign_up(signup_email, signup_password)
+                        success, msg, user_obj = supabase_auth.sign_up(
+                            clean_signup_email,
+                            signup_password,
+                            full_name=clean_full_name
+                        )
                         if success:
                             if user_obj and not user_obj.get("pending_verification"):
                                 st.session_state["authenticated_user"] = user_obj
                                 st.session_state["_active_user_id"] = user_obj["id"]
+
+                                # Save user profile with full_name
+                                database.save_user_profile(
+                                    user_obj["id"],
+                                    full_name=clean_full_name,
+                                    target_group=career_roles.DEFAULT_ROLE,
+                                    skills_input="",
+                                    has_analyzed=False,
+                                    access_token=user_obj.get("access_token")
+                                )
+
+                                # Persist session token for page refreshes
+                                token = database.create_user_session(user_obj)
+                                st.query_params["session"] = token
+
                                 st.success("Account created and signed in! Welcome to SkillBridge.")
                                 st.rerun()
                             else:
                                 st.info(msg)
+                                st.session_state["_last_signin_email"] = clean_signup_email
                         else:
                             st.error(msg)
 
@@ -226,11 +291,29 @@ if st.session_state["authenticated_user"] is None:
                 forgot_submit = st.form_submit_button("Send Reset Instructions", type="secondary", use_container_width=True)
 
                 if forgot_submit:
-                    success, msg = supabase_auth.reset_password_for_email(forgot_email)
-                    if success:
-                        st.success(msg)
+                    clean_forgot_email = supabase_auth.sanitize_email(forgot_email)
+                    if not supabase_auth.is_valid_email_format(clean_forgot_email):
+                        st.error("Please enter a valid email address (e.g. name@domain.com).")
                     else:
-                        st.error(msg)
+                        success, msg = supabase_auth.reset_password_for_email(clean_forgot_email)
+                        if success:
+                            st.success(msg)
+                        else:
+                            st.error(msg)
+
+        # Collapsible Developer / Admin Setup Notice
+        st.write("")
+        with st.expander("ℹ️ Developer / Administrator Notice (Instant Registration & Login)", expanded=False):
+            st.markdown("""
+            **Instant Registration & Email Verification in Supabase:**
+            - **Why Email Verification Happens**: By default, Supabase sends confirmation emails and prevents password login until the link is clicked.
+            - **How to Enable Instant Registration & Login (No Emails Required)**:
+              1. Open your [Supabase Dashboard](https://app.supabase.com).
+              2. Go to **Authentication** -> **Providers** -> **Email**.
+              3. Turn **"Confirm email"** to **OFF** and click **Save**.
+              *(New student accounts will now register instantly, receive an immediate session, and log in with password without requiring any email confirmation link).*
+            - **Verifying Existing Accounts**: To confirm an already registered email, go to **Authentication** -> **Users**, click the `...` menu next to their email, and select **Confirm email**.
+            """)
 
     # Stop rendering remainder of app until user signs in
     st.markdown("---")
@@ -255,15 +338,21 @@ if st.session_state.get("_active_user_id") != user_id:
     st.session_state["confirm_reset_plan"] = False
 
 # Sidebar: Authenticated User Information & Sign Out Button
+user_name = current_user.get("full_name") or user_email.split("@")[0].capitalize()
 st.sidebar.markdown(f"""
 <div class="user-session-card">
     <div class="user-badge">Signed In</div>
-    <div class="user-email">{user_email}</div>
+    <div class="user-name" style="font-weight: 600; color: #F5EFE6; margin-top: 4px;">{user_name}</div>
+    <div class="user-email" style="font-size: 0.82rem; color: #BFAAB2;">{user_email}</div>
 </div>
 """, unsafe_allow_html=True)
 
 if st.sidebar.button("Sign Out", type="secondary", use_container_width=True):
     supabase_auth.sign_out(access_token)
+    session_token = st.query_params.get("session")
+    if session_token:
+        database.delete_user_session(session_token)
+    st.query_params.clear()
     for key in list(st.session_state.keys()):
         del st.session_state[key]
     st.rerun()
@@ -272,44 +361,60 @@ st.sidebar.divider()
 
 # Load user-specific profile from database (scoped to user_id)
 user_profile = database.get_user_profile(user_id, access_token)
-saved_target_group = user_profile.get("target_group", "Fresher Only")
-saved_skills_input = (user_profile.get("skills_input") or "").strip()
-group_index = 0 if saved_target_group == "All Roles" else 1
+saved_skills_input = user_profile.get("skills_input", "")
+saved_target_role = user_profile.get("target_group")
+if not saved_target_role or saved_target_role in ["All Roles", "Fresher Only"]:
+    saved_target_role = career_roles.DEFAULT_ROLE
+
+saved_category = career_roles.get_category_for_role(saved_target_role)
+category_keys = list(career_roles.CAREER_CATEGORIES.keys())
+cat_index = category_keys.index(saved_category) if saved_category in category_keys else 0
 
 # Sidebar: Profile Settings
-st.sidebar.markdown("### Profile Settings")
-st.sidebar.caption("Benchmark your skillset against verified job market postings.")
+st.sidebar.markdown("### Target Career Settings")
+st.sidebar.caption("Benchmark your skillset against verified technical roles.")
 
-group_selector = st.sidebar.selectbox(
-    "Target Career Group",
-    options=["All Roles", "Fresher Only"],
-    index=group_index,
-    help="Select whether to compare against all roles or entry-level/fresher postings."
+selected_category = st.sidebar.selectbox(
+    "Target Career Category",
+    options=category_keys,
+    index=cat_index,
+    help="Select a technical domain to browse available career paths."
 )
+
+roles_in_cat = career_roles.CAREER_CATEGORIES[selected_category]
+role_index = roles_in_cat.index(saved_target_role) if saved_target_role in roles_in_cat else 0
+
+selected_role = st.sidebar.selectbox(
+    "Target Career Role",
+    options=roles_in_cat,
+    index=role_index,
+    help="Select the specific technical role to benchmark against."
+)
+
+group_selector = selected_role
 
 skills_input = st.sidebar.text_area(
     "Current Technical Skills:",
     value=saved_skills_input,
     height=130,
-    placeholder="e.g. Python, SQL, Pandas, Scikit-Learn",
+    placeholder="e.g. Python, SQL, HTML, React, Docker",
     help="Type your current technical skills separated by commas."
 )
 
 analyze_button = st.sidebar.button("Analyze", type="primary")
 
-group_code = "1" if group_selector == "All Roles" else "2"
 clean_skills = skills_input.strip() if skills_input else ""
 is_skills_empty = len(clean_skills) == 0
 
 # Stale analysis invalidation:
 # If user cleared the input, immediately invalidate previous results
 if is_skills_empty:
-    if st.session_state.get("analysis_results") is not None:
+    if st.session_state.get("analysis_results") is not None or saved_skills_input != "":
         st.session_state["analysis_results"] = None
-    database.clear_gap_analysis(user_id)
-    database.save_user_profile(user_id, group_selector, "", has_analyzed=False, access_token=access_token)
+        database.clear_gap_analysis(user_id)
+        database.save_user_profile(user_id, group_selector, "", has_analyzed=False, access_token=access_token)
 else:
-    # If the user changed the skills or group in the UI without clicking Analyze,
+    # If the user changed the skills or role in the UI without clicking Analyze,
     # invalidate old stale analysis so we do not display mismatched results!
     curr_res = st.session_state.get("analysis_results")
     if curr_res is not None:
@@ -317,7 +422,7 @@ else:
         res_group = curr_res.get("group_name", "")
         if res_skills != clean_skills or res_group != group_selector:
             st.session_state["analysis_results"] = None
-            st.sidebar.info("💡 Skills or career group modified. Click **Analyze** to generate your updated Gap Analysis.")
+            st.sidebar.info("💡 Skills or career role modified. Click **Analyze** to generate your updated Gap Analysis.")
 
 # Analyze button trigger
 if analyze_button:
@@ -327,17 +432,26 @@ if analyze_button:
         database.clear_gap_analysis(user_id)
         database.save_user_profile(user_id, group_selector, "", has_analyzed=False, access_token=access_token)
     else:
-        # Run Module 3 gap analysis
-        gap_results = m3.run_module_3(
+        # Load raw dataset for market demand calculations if available
+        try:
+            job_df = pd.read_csv("job_dataset.csv")
+        except Exception:
+            job_df = None
+
+        # Run role-specific gap analysis and roadmap generation
+        analysis_data = career_roles.analyze_role_skill_gap(
+            role_name=group_selector,
             user_skills_input=clean_skills,
-            group_choice=group_code
+            job_df=job_df
         )
 
-        # Run Module 4 roadmap generator
-        main_roadmap, optional_roadmap, unmet_prereqs = m4.generate_roadmap_from_gap(gap_results)
+        gap_results = analysis_data["gap_results"]
+        main_roadmap = analysis_data["main_roadmap"]
+        optional_roadmap = analysis_data["optional_roadmap"]
+        staged_curriculum = analysis_data["staged_curriculum"]
 
         roadmap_fallback_skills = [
-            item["skill"] for item in (main_roadmap + optional_roadmap)
+            item["skill"] for item in main_roadmap
             if item["skill"].lower().strip() not in RESOURCES
         ]
 
@@ -362,10 +476,14 @@ if analyze_button:
         st.session_state["analysis_results"] = {
             "skills_input": clean_skills,
             "group_name": group_selector,
+            "category": selected_category,
             "gap_results": gap_results,
             "main_roadmap": main_roadmap,
             "optional_roadmap": optional_roadmap,
-            "unmet_prereqs": unmet_prereqs,
+            "staged_curriculum": staged_curriculum,
+            "matched_skills_detailed": analysis_data["matched_skills_detailed"],
+            "missing_skills_detailed": analysis_data["missing_skills_detailed"],
+            "unmet_prereqs": [item["skill"] for item in main_roadmap if item["is_unmet_prereq"]],
             "fallback_skills": roadmap_fallback_skills,
         }
 
@@ -378,6 +496,22 @@ if not is_skills_empty and st.session_state.get("analysis_results") is None:
         and saved_analysis.get("group_name") == group_selector
     ):
         st.session_state["analysis_results"] = saved_analysis
+
+# If analysis results are restored from DB without staged_curriculum, compute it
+results_data = st.session_state.get("analysis_results")
+if results_data is not None and "staged_curriculum" not in results_data:
+    try:
+        job_df = pd.read_csv("job_dataset.csv")
+    except Exception:
+        job_df = None
+    fresh_data = career_roles.analyze_role_skill_gap(
+        role_name=results_data.get("group_name", group_selector),
+        user_skills_input=results_data.get("skills_input", clean_skills),
+        job_df=job_df
+    )
+    results_data["staged_curriculum"] = fresh_data["staged_curriculum"]
+    results_data["matched_skills_detailed"] = fresh_data["matched_skills_detailed"]
+    results_data["missing_skills_detailed"] = fresh_data["missing_skills_detailed"]
 
 # Auto-restore saved study schedule from database if not in session state
 if st.session_state.get("schedule_results") is None:
@@ -394,7 +528,7 @@ results_data = st.session_state.get("analysis_results")
 if results_data is not None:
     gap_results = results_data["gap_results"]
     main_roadmap = results_data["main_roadmap"]
-    optional_roadmap = results_data["optional_roadmap"]
+    optional_roadmap = results_data.get("optional_roadmap", [])
     selected_group = results_data["group_name"]
 else:
     gap_results = None
@@ -419,12 +553,20 @@ with tab_gap:
         <div class="empty-state-card">
             <div class="empty-state-icon">✦</div>
             <h3>Technical Skills Required</h3>
-            <p>Please enter your current technical skills (e.g. <em>Python, SQL, Pandas</em>) in the sidebar and click <strong>Analyze</strong> to perform your skill gap analysis.</p>
+            <p>Please enter your current technical skills (e.g. <em>Python, SQL, HTML, React, Docker</em>) in the sidebar and click <strong>Analyze</strong> to perform your skill gap analysis.</p>
         </div>
         """, unsafe_allow_html=True)
     elif results_data is not None:
-        st.subheader("Skill Gap & Market Alignment Overview")
-        st.caption("Quantified evaluation of your current competencies versus market demand.")
+        role_desc = gap_results.get("description", "")
+        role_cat = gap_results.get("category", selected_category)
+
+        st.markdown(f"""
+        <div class="career-role-header">
+            <span class="role-category-badge">{role_cat}</span>
+            <h3>{selected_group}</h3>
+            <p>{role_desc}</p>
+        </div>
+        """, unsafe_allow_html=True)
 
         coverage_score = gap_results["coverage_percentage"]
         matched_count = gap_results["matched_count"]
@@ -449,15 +591,42 @@ with tab_gap:
             )
 
         progress_val = min(1.0, max(0.0, coverage_score / 100.0))
-        st.progress(progress_val, text=f"Top 15 Market Alignment: {coverage_score:.1f}%")
+        st.progress(progress_val, text=f"{selected_group} Market Alignment: {coverage_score:.1f}%")
+
+        # Skill Level Distribution Pills
+        matched_details = results_data.get("matched_skills_detailed", [])
+        missing_details = results_data.get("missing_skills_detailed", [])
+        all_details = matched_details + missing_details
+        beginner_count = sum(1 for s in all_details if s.get("level") == "Beginner")
+        interm_count = sum(1 for s in all_details if s.get("level") == "Intermediate")
+        adv_count = sum(1 for s in all_details if s.get("level") == "Advanced")
+
+        st.markdown(f"""
+        <div class="chart-highlight-strip">
+            <div class="chart-highlight-pill">Beginner Foundations: <strong>{beginner_count} Skills</strong></div>
+            <div class="chart-highlight-pill">Intermediate Core: <strong>{interm_count} Skills</strong></div>
+            <div class="chart-highlight-pill">Advanced & Systems: <strong>{adv_count} Skills</strong></div>
+        </div>
+        """, unsafe_allow_html=True)
 
         st.divider()
 
         col_have, col_missing = st.columns(2)
 
         with col_have:
-            st.markdown("#### Matched Skills (Top 15 Alignment)")
-            if gap_results["matched_skills"]:
+            st.markdown("#### Matched Competencies (Skills You Have)")
+            if matched_details:
+                for s in matched_details:
+                    with st.container(border=True):
+                        c1, c2 = st.columns([3, 1])
+                        with c1:
+                            st.markdown(f"**✓ {s['display_name']}**")
+                            st.caption(f"Stage: {s['stage']} · Level: {s['level']}")
+                        with c2:
+                            st.markdown(":green-background[**Mastered**]")
+                            res_title, res_url = career_roles.get_skill_resource(s['skill'])
+                            st.link_button("Docs ↗", res_url, help=res_title)
+            elif gap_results["matched_skills"]:
                 have_df = pd.DataFrame([
                     {
                         "Rank": f"#{rank}",
@@ -468,11 +637,23 @@ with tab_gap:
                 ])
                 st.dataframe(have_df, width="stretch", hide_index=True)
             else:
-                st.info("None of your entered skills match the top 15 skills for this group.")
+                st.info(f"None of your entered skills match the requirements for {selected_group}.")
 
         with col_missing:
-            st.markdown("#### Missing High-Demand Skills")
-            if gap_results["missing_skills"]:
+            st.markdown("#### Missing Required Competencies (Skills to Learn)")
+            if missing_details:
+                for s in missing_details:
+                    with st.container(border=True):
+                        c1, c2 = st.columns([3, 1])
+                        with c1:
+                            st.markdown(f"**⚡ {s['display_name']}**")
+                            st.caption(f"Stage: {s['stage']} · Level: {s['level']} · Demand: {s['demand_pct']:.1f}%")
+                            st.markdown(f"<span style='font-size:0.8rem; color:#BFAAB2;'>{s['why_matters']}</span>", unsafe_allow_html=True)
+                        with c2:
+                            st.markdown(":orange-background[**To Learn**]")
+                            res_title, res_url = career_roles.get_skill_resource(s['skill'])
+                            st.link_button(f"Learn {s['display_name'].split()[0]} ↗", res_url, help=f"Open {res_title}")
+            elif gap_results["missing_skills"]:
                 missing_df = pd.DataFrame([
                     {
                         "Rank": f"#{rank}",
@@ -483,18 +664,18 @@ with tab_gap:
                 ])
                 st.dataframe(missing_df, width="stretch", hide_index=True)
             else:
-                st.success("Incredible! You have mastered all top 15 skills.")
+                st.success(f"Incredible! You have mastered all core skills for {selected_group}.")
 
         st.divider()
-        st.markdown("#### Typed Skills Not Found in Dataset")
+        st.markdown("#### Typed Skills Outside This Career Profile")
         if gap_results["not_in_dataset"]:
-            st.caption("The following skills were not found in any job postings in this dataset:")
+            st.caption("The following skills you entered are not required for this role or not found in the technical taxonomy:")
             cols_unknown = st.columns(min(4, len(gap_results["not_in_dataset"])))
             for idx, skill in enumerate(gap_results["not_in_dataset"]):
                 with cols_unknown[idx % len(cols_unknown)]:
                     st.info(f"🔍 **{format_skill_name(skill)}**")
         else:
-            st.caption("All typed skills were recognized in the dataset.")
+            st.caption("All typed skills were recognized in the technical competency taxonomy.")
     else:
         render_empty_state("Gap Analysis dashboard")
 
@@ -511,18 +692,18 @@ with tab_roadmap:
         </div>
         """, unsafe_allow_html=True)
     elif results_data is not None:
-        st.subheader("Personalized Learning Journey")
-        st.caption("Structured progression: Foundational prerequisites precede advanced core skills, ordered by market demand.")
+        st.subheader(f"Personalized Learning Journey — {selected_group}")
+        st.caption("Structured progression: Foundational prerequisites precede advanced core skills, organized into clear learning phases.")
 
         core_count = len(main_roadmap)
-        unmet_count = sum(1 for item in main_roadmap if item["is_unmet_prereq"])
-        elective_count = len(optional_roadmap)
+        matched_count = gap_results["matched_count"]
+        total_skills_count = gap_results["total_top"]
 
         st.markdown(f"""
         <div class="chart-highlight-strip">
-            <div class="chart-highlight-pill">Total Curriculum Milestones: <strong>{core_count + elective_count} Skills</strong></div>
-            <div class="chart-highlight-pill">Prerequisite Dependencies: <strong>{unmet_count} Identified</strong></div>
-            <div class="chart-highlight-pill">Elective Technologies: <strong>{elective_count} Tracks</strong></div>
+            <div class="chart-highlight-pill">Target Career: <strong>{selected_group}</strong></div>
+            <div class="chart-highlight-pill">Mastered: <strong>{matched_count} / {total_skills_count} Skills</strong></div>
+            <div class="chart-highlight-pill">Remaining to Learn: <strong>{core_count} Milestones</strong></div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -534,78 +715,88 @@ with tab_roadmap:
             )
             st.write("")
 
-        st.markdown("#### Core AI / ML & Data Science Track")
-        if main_roadmap:
-            for idx, item in enumerate(main_roadmap, start=1):
+        staged_curriculum = results_data.get("staged_curriculum")
+        if not staged_curriculum:
+            fresh_role = career_roles.get_role_data(selected_group)
+            staged_curriculum = {
+                "Foundations": [s for s in fresh_role["skills"] if s["stage"] == "Foundations"],
+                "Core Skills": [s for s in fresh_role["skills"] if s["stage"] == "Core Skills"],
+                "Advanced Skills": [s for s in fresh_role["skills"] if s["stage"] == "Advanced Skills"],
+                "Projects & Specialization": [s for s in fresh_role["skills"] if s["stage"] == "Projects & Specialization"],
+            }
+
+        stage_meta = [
+            ("Foundations", "🏗️ Phase 1: Foundations & Prerequisites", "Core principles, languages, and baseline tools required before advanced development."),
+            ("Core Skills", "⚡ Phase 2: Core Engineering Competencies", "Primary engineering frameworks, databases, and day-to-day technologies."),
+            ("Advanced Skills", "🚀 Phase 3: Advanced Specializations & Systems", "High-performance architecture, security, scaling, and cloud deployment."),
+            ("Projects & Specialization", "💼 Phase 4: Capstone Projects & Production Deployment", "End-to-end hands-on projects, real-world systems, and production pipelines."),
+        ]
+
+        step_counter = 1
+        for stage_key, stage_title, stage_desc in stage_meta:
+            stage_items = staged_curriculum.get(stage_key, [])
+            if not stage_items:
+                continue
+
+            st.markdown(f"""
+            <div class="stage-section-header">
+                <div>
+                    <h4>{stage_title}</h4>
+                    <span style="font-size:0.8rem; color:#BFAAB2;">{stage_desc}</span>
+                </div>
+                <span class="stage-pill">{len(stage_items)} Topics</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+            for item in stage_items:
                 clean_skill_key = item["skill"].lower().strip()
                 skill_stat = learning_progress["skill_progress"].get(clean_skill_key)
+                is_known = item.get("is_matched", False)
+
+                display_name = item.get("display_name", format_skill_name(item["skill"]))
+                res_title = item.get("resource_title") or f"{display_name} Official Documentation"
+                res_url = item.get("resource_url") or career_roles.get_skill_resource(clean_skill_key)[1]
+                why_matters = item.get("why_matters", f"Essential competency for {selected_group}.")
+                practice_proj = item.get("practice_project", f"Build a hands-on project demonstrating {display_name}.")
+                prereqs = item.get("prerequisites", [])
 
                 with st.container(border=True):
-                    status_class = "status-prerequisite" if item["is_unmet_prereq"] else "status-core"
-                    st.markdown(f'<span class="{status_class}"></span>', unsafe_allow_html=True)
-
                     col_info, col_action = st.columns([3, 1])
 
                     with col_info:
-                        formatted_skill = format_skill_name(item["skill"])
-                        st.markdown(f"**Step {idx:02d}: {formatted_skill}**")
+                        st.markdown(f"**Step {step_counter:02d}: {display_name}**")
+                        st.markdown(f"<span style='font-size:0.82rem; color:#D6B875;'>Level: {item.get('level', 'Intermediate')}</span> · <span style='font-size:0.82rem; color:#BFAAB2;'>Demand: {item.get('demand_pct', 75.0):.1f}%</span>", unsafe_allow_html=True)
 
-                        res_title, res_url = m4.get_skill_resource(clean_skill_key)
-                        if clean_skill_key not in RESOURCES:
-                            res_title = f"{formatted_skill} Tutorial for Beginners (Google Search)"
+                        st.markdown(f"💡 **Why this matters for {selected_group}:** {why_matters}")
 
-                        st.caption(f"📖 {res_title}")
-
-                    with col_action:
-                        if item["is_unmet_prereq"]:
-                            st.markdown(f":orange-background[**Prerequisite**] · **{item['demand_pct']:.1f}%**")
+                        if prereqs:
+                            formatted_prereqs = ", ".join(format_skill_name(p) for p in prereqs)
+                            st.markdown(f"🔗 **Prerequisites:** {formatted_prereqs}")
                         else:
-                            st.markdown(f":blue-background[**Core**] · **{item['demand_pct']:.1f}%**")
+                            st.markdown(f"🔗 **Prerequisites:** *None (Foundational Entry Point)*")
 
-                        if skill_stat:
-                            if skill_stat["is_complete"]:
-                                st.markdown(":green-background[**✓ Mastered**]")
-                            elif skill_stat["completed_tasks"] > 0:
-                                st.markdown(f":violet-background[**In Progress ({skill_stat['pct']:.0f}%)**]")
-
-                        st.link_button("Open resource ↗", res_url)
-        else:
-            st.success("Your core roadmap is complete! All required core skills are mastered.")
-
-        if optional_roadmap:
-            st.divider()
-            st.markdown("#### Optional & Specialized Electives (Alternative Languages & Big Data)")
-            st.caption("Specialized technologies ordered by market demand percentage.")
-
-            for idx, item in enumerate(optional_roadmap, start=1):
-                clean_skill_key = item["skill"].lower().strip()
-                skill_stat = learning_progress["skill_progress"].get(clean_skill_key)
-
-                with st.container(border=True):
-                    st.markdown('<span class="status-optional"></span>', unsafe_allow_html=True)
-
-                    col_info, col_action = st.columns([3, 1])
-
-                    with col_info:
-                        formatted_skill = format_skill_name(item["skill"])
-                        st.markdown(f"**Elective: {formatted_skill}**")
-
-                        res_title, res_url = m4.get_skill_resource(clean_skill_key)
-                        if clean_skill_key not in RESOURCES:
-                            res_title = f"{formatted_skill} Tutorial for Beginners (Google Search)"
+                        st.markdown(f"""
+                        <div class="practice-project-box">
+                            🛠️ <strong>Suggested Practice / Mini-Project:</strong> {practice_proj}
+                        </div>
+                        """, unsafe_allow_html=True)
 
                         st.caption(f"📖 {res_title}")
 
                     with col_action:
-                        st.markdown(f":green-background[**Optional**] · **{item['demand_pct']:.1f}%**")
+                        # Status badge
+                        if is_known:
+                            st.markdown(":green-background[**✓ Mastered**]")
+                        elif skill_stat and skill_stat.get("is_complete"):
+                            st.markdown(":green-background[**✓ Mastered**]")
+                        elif skill_stat and skill_stat.get("completed_tasks", 0) > 0:
+                            st.markdown(f":violet-background[**In Progress ({skill_stat['pct']:.0f}%)**]")
+                        else:
+                            st.markdown(":orange-background[**To Learn**]")
 
-                        if skill_stat:
-                            if skill_stat["is_complete"]:
-                                st.markdown(":green-background[**✓ Mastered**]")
-                            elif skill_stat["completed_tasks"] > 0:
-                                st.markdown(f":violet-background[**In Progress ({skill_stat['pct']:.0f}%)**]")
+                        st.link_button(f"Learn {display_name.split()[0]} ↗", res_url, use_container_width=True)
 
-                        st.link_button("Open resource ↗", res_url)
+                step_counter += 1
     else:
         render_empty_state("Personalized Learning Journey")
 
@@ -614,41 +805,41 @@ with tab_roadmap:
 # =========================================================================
 with tab_demand:
     if results_data is not None:
-        st.subheader(f"Top 15 Demanded Skills — {selected_group}")
-        st.caption(f"Demand percentage calculated across real-world job postings in the {selected_group} cohort.")
+        st.subheader(f"Top In-Demand Skills — {selected_group}")
+        st.caption(f"Market demand frequency and relative priority benchmarks for the {selected_group} career track.")
 
-        top_15_skills = gap_results["group_demand"][:15]
-
-        top_skill_name = format_skill_name(top_15_skills[0][0])
-        top_skill_pct = top_15_skills[0][2]
-        avg_top15_pct = sum(item[2] for item in top_15_skills) / len(top_15_skills)
+        top_skills = gap_results["group_demand"][:15]
+        top_skill_name = format_skill_name(top_skills[0][0])
+        top_skill_pct = top_skills[0][2]
+        avg_demand_pct = sum(item[2] for item in top_skills) / len(top_skills)
 
         st.markdown(f"""
         <div class="chart-highlight-strip">
             <div class="chart-highlight-pill">Highest Market Demand: <strong>{top_skill_name} ({top_skill_pct:.1f}%)</strong></div>
-            <div class="chart-highlight-pill">Top 15 Benchmark Average: <strong>{avg_top15_pct:.1f}%</strong></div>
-            <div class="chart-highlight-pill">Selected Group: <strong>{selected_group}</strong></div>
+            <div class="chart-highlight-pill">Average Priority Benchmark: <strong>{avg_demand_pct:.1f}%</strong></div>
+            <div class="chart-highlight-pill">Target Career Track: <strong>{selected_group}</strong></div>
         </div>
         """, unsafe_allow_html=True)
 
         chart_df = pd.DataFrame({
-            "Skill": [format_skill_name(item[0]) for item in top_15_skills],
-            "Demand (%)": [item[2] for item in top_15_skills]
+            "Skill": [format_skill_name(item[0]) for item in top_skills],
+            "Demand (%)": [item[2] for item in top_skills]
         }).set_index("Skill")
 
         st.bar_chart(chart_df, color="#D6B875", height=420)
 
-        st.markdown("#### Demand Breakdown Table")
-        demand_table_df = pd.DataFrame([
-            {
-                "Rank": f"#{idx + 1}",
-                "Skill Name": format_skill_name(item[0]),
-                "Postings Count": item[1],
-                "Market Demand": f"{item[2]:.1f}%"
-            }
-            for idx, item in enumerate(top_15_skills)
-        ])
-        st.dataframe(demand_table_df, width="stretch", hide_index=True)
+        st.markdown("#### Demand & Learning Resource Breakdown")
+        for idx, item in enumerate(top_skills, start=1):
+            s_name = item[0]
+            s_pct = item[2]
+            res_title, res_url = career_roles.get_skill_resource(s_name)
+            with st.container(border=True):
+                col_d1, col_d2 = st.columns([3, 1])
+                with col_d1:
+                    st.markdown(f"**#{idx} · {format_skill_name(s_name)}** · **{s_pct:.1f}% Demand**")
+                    st.caption(f"📖 {res_title}")
+                with col_d2:
+                    st.link_button(f"Learn {format_skill_name(s_name).split()[0]} ↗", res_url, use_container_width=True)
     else:
         render_empty_state("Market Demand analysis")
 
@@ -869,47 +1060,190 @@ with tab_planner:
 
     st.divider()
 
-    # Chat Area using st.chat_input and st.chat_message
-    st.markdown("#### 💬 Study Assistant Chat")
-    st.caption("Ask questions about your study roadmap, prerequisites, duration, routine, or resources.")
+    # =========================================================================
+    # ARIS INTELLIGENT ASSISTANT (Jarvis-Inspired Futuristic UI & Backend)
+    # =========================================================================
+    assistant_config = database.get_assistant_settings(user_id)
+    assistant_name = assistant_config.get("assistant_name", "Aris")
+    avatar_type = assistant_config.get("avatar_type", "aris_nexus")
+    assistant_avatar_path = assistant_config.get("avatar_image_path", "avatars/aris_nexus.png")
+    custom_avatar_path = assistant_config.get("custom_avatar_path")
 
-    # Render existing conversation messages for this user
-    for msg in (st.session_state.get("chat_messages") or []):
-        with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
+    # Retrieve real AI engine connection status
+    engine_type, engine_title, engine_desc = aris_assistant.get_ai_engine_status()
+
+    # ARIS Header Card
+    col_av, col_info = st.columns([1, 8])
+    with col_av:
+        if os.path.exists(assistant_avatar_path):
+            st.image(assistant_avatar_path, width=64)
+    with col_info:
+        st.markdown(f"""
+        <div class="aris-header-title-row">
+            <span class="aris-display-name">{assistant_name}</span>
+            <span class="aris-status-badge"><span class="aris-status-dot"></span>{engine_title}</span>
+        </div>
+        <p class="aris-header-subtitle">Composed, intelligent personal assistant for programming concepts, code debugging, and strategic roadmap progression.</p>
+        """, unsafe_allow_html=True)
+
+    # Assistant Profile Customization Section
+    with st.expander(f"⚙️ Customize Assistant Profile ({assistant_name})", expanded=False):
+        col_cust, col_prev = st.columns([3, 2])
+
+        with col_cust:
+            st.markdown("##### Assistant Identity & Appearance")
+            cust_name = st.text_input(
+                "Display Name:",
+                value=assistant_name,
+                placeholder="e.g. Aris, Jarvis, Nexus",
+                help="Change the name your assistant uses in the conversation."
+            )
+
+            avatar_options = {
+                "aris_nexus": "Aris Nexus (Regal Gold)",
+                "quantum_arc": "Quantum Arc (Cyan Cyber)",
+                "neural_pulse": "Neural Pulse (Rose Wine)",
+                "titan_monolith": "Titan Monolith (Obsidian)",
+                "custom": "Upload Custom Image",
+            }
+            avatar_keys = list(avatar_options.keys())
+            def_idx = avatar_keys.index(avatar_type) if avatar_type in avatar_keys else 0
+
+            selected_avatar_key = st.selectbox(
+                "Choose Avatar Preset:",
+                options=avatar_keys,
+                format_func=lambda k: avatar_options[k],
+                index=def_idx,
+                help="Select a sleek futuristic avatar or upload your own."
+            )
+
+            saved_custom_path = custom_avatar_path
+            if selected_avatar_key == "custom":
+                uploaded_avatar = st.file_uploader(
+                    "Upload Custom Profile Picture:",
+                    type=["png", "jpg", "jpeg"],
+                    help="Upload a square PNG or JPG image."
+                )
+                if uploaded_avatar is not None:
+                    os.makedirs("avatars", exist_ok=True)
+                    saved_custom_path = f"avatars/custom_{user_id}.png"
+                    with open(saved_custom_path, "wb") as f_out:
+                        f_out.write(uploaded_avatar.getbuffer())
+
+            btn_save_col, btn_reset_col = st.columns(2)
+            with btn_save_col:
+                if st.button("Save Preferences", type="primary", use_container_width=True):
+                    database.save_assistant_settings(
+                        user_id=user_id,
+                        assistant_name=cust_name.strip() or "Aris",
+                        avatar_type=selected_avatar_key,
+                        custom_avatar_path=saved_custom_path
+                    )
+                    st.success("Assistant profile saved.")
+                    st.rerun()
+
+            with btn_reset_col:
+                if st.button("Reset to Defaults", type="secondary", use_container_width=True):
+                    database.reset_assistant_settings(user_id)
+                    st.info("Assistant profile reset to original Aris defaults.")
+                    st.rerun()
+
+        with col_prev:
+            st.markdown("##### Real-Time Preview")
+            # Determine preview image path
+            if selected_avatar_key == "custom" and saved_custom_path and os.path.exists(saved_custom_path):
+                prev_img_path = saved_custom_path
+            elif selected_avatar_key in database.AVATAR_MAP and os.path.exists(database.AVATAR_MAP[selected_avatar_key]):
+                prev_img_path = database.AVATAR_MAP[selected_avatar_key]
+            else:
+                prev_img_path = "avatars/aris_nexus.png"
+
+            with st.container(border=True):
+                col_p_img, col_p_txt = st.columns([1, 2])
+                with col_p_img:
+                    if os.path.exists(prev_img_path):
+                        st.image(prev_img_path, width=70)
+                with col_p_txt:
+                    st.markdown(f"**{cust_name.strip() or 'Aris'}**")
+                    st.caption("Active Personal Assistant")
+                    st.caption(avatar_options.get(selected_avatar_key, "Preset"))
+
+                st.markdown(
+                    f"""
+                    <div style="background: #2D0F1C; border-left: 3px solid #D6B875; border-radius: 6px; padding: 10px 12px; font-size: 0.82rem; color: #F5EFE6; margin-top: 8px;">
+                        <span style="font-size: 0.72rem; text-transform: uppercase; color: #D6B875; font-weight: 600; display: block; margin-bottom: 3px;">Persona Preview</span>
+                        <em>"Good day. I am {cust_name.strip() or 'Aris'}. How may I assist your engineering study today?"</em>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+    st.write("")
+
+    # Chat Header with Clear Conversation Action
+    col_chat_title, col_chat_clear = st.columns([5, 1])
+    with col_chat_title:
+        st.markdown(f"#### 💬 Conversation with {assistant_name}")
+        st.caption("Ask technical questions, request code debugging, or explore your personalized curriculum.")
+    with col_chat_clear:
+        if st.button("Clear Chat", type="secondary", help="Clear conversation history"):
+            database.clear_chat_history(user_id)
+            st.session_state["chat_messages"] = []
+            st.rerun()
+
+    # Dedicated container for unified chat messages (prevents duplicate response boxes)
+    chat_container = st.container()
+    with chat_container:
+        for msg in (st.session_state.get("chat_messages") or []):
+            if msg["role"] == "assistant":
+                with st.chat_message("assistant", avatar=assistant_avatar_path):
+                    st.markdown(f"**{assistant_name}**")
+                    st.markdown(msg["content"])
+            else:
+                with st.chat_message("user"):
+                    st.markdown(msg["content"])
 
     # Chat input
-    user_query = st.chat_input("Ask study assistant (e.g. 'What first?', 'Why numpy?', 'How long?', 'What is scikit-learn?')")
+    user_query = st.chat_input(f"Ask {assistant_name} (e.g. 'What is NumPy?', 'Write Python code to create a Seaborn bar chart.')...")
     if user_query:
-        if st.session_state["chat_messages"] is None:
+        if st.session_state.get("chat_messages") is None:
             st.session_state["chat_messages"] = []
 
-        # Record user query
+        # Record user query in session state and persistent storage
         st.session_state["chat_messages"].append({"role": "user", "content": user_query})
         database.save_chat_message(user_id, "user", user_query)
 
-        with st.chat_message("user"):
-            st.markdown(user_query)
-
+        # Assemble schedule context
         sched_context = None
         if st.session_state.get("schedule_results") is not None:
             sr = st.session_state["schedule_results"]
             sched_context = (sr["weeks"], sr["total_weeks"], sr["hours_per_day"], sr["days_per_week"])
 
-        reply = planner.get_study_assistant_response(
-            query=user_query,
-            analysis_results=st.session_state.get("analysis_results"),
-            schedule_context=sched_context
-        )
+        # Display query and synthesize response in chat_container
+        with chat_container:
+            with st.chat_message("user"):
+                st.markdown(user_query)
 
+            with st.chat_message("assistant", avatar=assistant_avatar_path):
+                st.markdown(f"**{assistant_name}**")
+                with st.spinner(f"{assistant_name} is synthesizing response..."):
+                    reply = aris_assistant.get_aris_response(
+                        query=user_query,
+                        chat_history=st.session_state["chat_messages"][:-1],
+                        assistant_name=assistant_name,
+                        analysis_results=st.session_state.get("analysis_results"),
+                        schedule_context=sched_context,
+                        user_profile=user_profile,
+                    )
+                st.markdown(reply)
+
+        # Record assistant reply and cleanly rerun to synchronize state
         st.session_state["chat_messages"].append({"role": "assistant", "content": reply})
         database.save_chat_message(user_id, "assistant", reply)
-
-        with st.chat_message("assistant"):
-            st.markdown(reply)
+        st.rerun()
 
     st.markdown("---")
-    st.caption("Rule-based assistant. Time estimates are approximate.")
+    st.caption(f"{assistant_name} · Inspired by Jarvis · Built for SkillBridge · {engine_desc}")
 
 # Footer
 st.markdown("---")

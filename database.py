@@ -39,6 +39,7 @@ def init_db(db_path: str = DB_PATH) -> None:
                 CREATE TABLE IF NOT EXISTS profiles (
                     id TEXT PRIMARY KEY,
                     email TEXT,
+                    full_name TEXT DEFAULT '',
                     target_group TEXT DEFAULT 'Fresher Only',
                     skills_input TEXT DEFAULT '',
                     hours_per_day INTEGER DEFAULT 2,
@@ -49,6 +50,14 @@ def init_db(db_path: str = DB_PATH) -> None:
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
+
+            cursor.execute("PRAGMA table_info(profiles)")
+            profile_cols = [row[1] for row in cursor.fetchall()]
+            if "full_name" not in profile_cols:
+                try:
+                    cursor.execute("ALTER TABLE profiles ADD COLUMN full_name TEXT DEFAULT ''")
+                except Exception:
+                    pass
 
             # 2. User Gap Analysis Results
             cursor.execute("""
@@ -114,6 +123,30 @@ def init_db(db_path: str = DB_PATH) -> None:
                 )
             """)
 
+            # 6. Assistant Profile Settings (ARIS customization per user)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS assistant_settings (
+                    user_id TEXT PRIMARY KEY,
+                    assistant_name TEXT DEFAULT 'Aris',
+                    avatar_type TEXT DEFAULT 'aris_nexus',
+                    custom_avatar_path TEXT,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # 7. Persistent User Sessions (for seamless page refresh/reopen)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS user_sessions (
+                    session_token TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL,
+                    email TEXT NOT NULL,
+                    full_name TEXT DEFAULT '',
+                    access_token TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    expires_at TIMESTAMP
+                )
+            """)
+
 
 # -----------------------------------------------------------------------------
 # SUPABASE REST HELPER (Optional cloud sync when credentials provided)
@@ -131,12 +164,81 @@ def _supabase_headers(access_token: Optional[str] = None) -> Dict[str, str]:
 
 
 # -----------------------------------------------------------------------------
+# PERSISTENT USER SESSIONS (Seamless Refresh & Reopen Scoped to user_id)
+# -----------------------------------------------------------------------------
+def create_user_session(user_obj: Dict[str, Any], days_valid: int = 7, db_path: str = DB_PATH) -> str:
+    """Create and persist an opaque session token for the user to support reload/reopen."""
+    init_db(db_path)
+    import secrets
+    session_token = secrets.token_urlsafe(32)
+    user_id = str(user_obj.get("id"))
+    email = str(user_obj.get("email", ""))
+    full_name = str(user_obj.get("full_name", ""))
+    access_token = str(user_obj.get("access_token", ""))
+    expires = (datetime.datetime.now() + datetime.timedelta(days=days_valid)).isoformat()
+
+    with closing(get_connection(db_path)) as conn:
+        with conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO user_sessions (session_token, user_id, email, full_name, access_token, expires_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (session_token, user_id, email, full_name, access_token, expires))
+    return session_token
+
+
+def get_user_session(session_token: str, db_path: str = DB_PATH) -> Optional[Dict[str, Any]]:
+    """Retrieve and validate user session from database."""
+    if not session_token:
+        return None
+    init_db(db_path)
+    with closing(get_connection(db_path)) as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT session_token, user_id, email, full_name, access_token, expires_at
+            FROM user_sessions
+            WHERE session_token = ?
+        """, (session_token,))
+        row = cursor.fetchone()
+        if not row:
+            return None
+        expires_at = row["expires_at"]
+        if expires_at:
+            try:
+                exp_dt = datetime.datetime.fromisoformat(expires_at)
+                if datetime.datetime.now() > exp_dt:
+                    delete_user_session(session_token, db_path)
+                    return None
+            except Exception:
+                pass
+        return {
+            "id": row["user_id"],
+            "email": row["email"],
+            "full_name": row["full_name"],
+            "access_token": row["access_token"],
+            "session_token": row["session_token"],
+        }
+
+
+def delete_user_session(session_token: str, db_path: str = DB_PATH) -> None:
+    """Delete a user session on logout."""
+    if not session_token:
+        return
+    init_db(db_path)
+    with closing(get_connection(db_path)) as conn:
+        with conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM user_sessions WHERE session_token = ?", (session_token,))
+
+
+# -----------------------------------------------------------------------------
 # USER PROFILE PERSISTENCE (Strictly scoped by user_id)
 # -----------------------------------------------------------------------------
 def get_user_profile(user_id: str, access_token: Optional[str] = None, db_path: str = DB_PATH) -> Dict[str, Any]:
     """Retrieve user-specific profile inputs and preferences."""
     if not user_id:
         return {
+            "full_name": "",
             "target_group": "Fresher Only",
             "skills_input": "",
             "hours_per_day": 2,
@@ -161,6 +263,7 @@ def get_user_profile(user_id: str, access_token: Optional[str] = None, db_path: 
                 if rows:
                     p = rows[0]
                     return {
+                        "full_name": p.get("full_name") or "",
                         "target_group": p.get("target_group") or "Fresher Only",
                         "skills_input": p.get("skills_input") or "",
                         "hours_per_day": int(p.get("hours_per_day") or 2),
@@ -177,7 +280,9 @@ def get_user_profile(user_id: str, access_token: Optional[str] = None, db_path: 
         cursor.execute("SELECT * FROM profiles WHERE id = ?", (user_id,))
         row = cursor.fetchone()
         if row:
+            cols = [d[0] for d in cursor.description]
             return {
+                "full_name": row["full_name"] if "full_name" in cols else "",
                 "target_group": row["target_group"] or "Fresher Only",
                 "skills_input": row["skills_input"] or "",
                 "hours_per_day": int(row["hours_per_day"] or 2),
@@ -187,6 +292,7 @@ def get_user_profile(user_id: str, access_token: Optional[str] = None, db_path: 
             }
 
     return {
+        "full_name": "",
         "target_group": "Fresher Only",
         "skills_input": "",
         "hours_per_day": 2,
@@ -200,6 +306,7 @@ def save_user_profile(
     user_id: str,
     target_group: str,
     skills_input: str,
+    full_name: Optional[str] = None,
     has_analyzed: bool = True,
     hours_per_day: int = 2,
     days_per_week: int = 5,
@@ -219,9 +326,10 @@ def save_user_profile(
         with conn:
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT INTO profiles (id, target_group, skills_input, hours_per_day, days_per_week, start_date, has_analyzed, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                INSERT INTO profiles (id, full_name, target_group, skills_input, hours_per_day, days_per_week, start_date, has_analyzed, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                 ON CONFLICT(id) DO UPDATE SET
+                    full_name = CASE WHEN excluded.full_name != '' THEN excluded.full_name ELSE profiles.full_name END,
                     target_group = excluded.target_group,
                     skills_input = excluded.skills_input,
                     hours_per_day = excluded.hours_per_day,
@@ -229,12 +337,29 @@ def save_user_profile(
                     start_date = excluded.start_date,
                     has_analyzed = excluded.has_analyzed,
                     updated_at = CURRENT_TIMESTAMP
-            """, (user_id, target_group, clean_skills, hours_per_day, days_per_week, start_date, analyzed_int))
+            """, (user_id, full_name or "", target_group, clean_skills, hours_per_day, days_per_week, start_date, analyzed_int))
 
     # Sync to Supabase if configured
     url, anon_key = supabase_auth.get_supabase_config()
     if supabase_auth.is_supabase_configured() and access_token and not access_token.startswith("local_"):
         try:
+            headers = _supabase_headers(access_token)
+            headers["Prefer"] = "resolution=merge-duplicates"
+            payload = {
+                "id": user_id,
+                "target_group": target_group,
+                "skills_input": clean_skills,
+                "hours_per_day": hours_per_day,
+                "days_per_week": days_per_week,
+                "has_analyzed": bool(analyzed_int),
+            }
+            if full_name:
+                payload["full_name"] = full_name
+            if start_date:
+                payload["start_date"] = start_date
+            requests.post(f"{url}/rest/v1/profiles", json=payload, headers=headers, timeout=5)
+        except Exception:
+            pass
             headers = _supabase_headers(access_token)
             headers["Prefer"] = "resolution=merge-duplicates"
             payload = {
@@ -678,3 +803,98 @@ def clear_chat_history(user_id: str, db_path: str = DB_PATH) -> None:
         with conn:
             cursor = conn.cursor()
             cursor.execute("DELETE FROM chat_history WHERE user_id = ?", (user_id,))
+
+
+# -----------------------------------------------------------------------------
+# ASSISTANT PROFILE SETTINGS (ARIS Customization & Persistence)
+# -----------------------------------------------------------------------------
+DEFAULT_ASSISTANT_NAME = "Aris"
+DEFAULT_AVATAR_TYPE = "aris_nexus"
+DEFAULT_AVATAR_PATH = "avatars/aris_nexus.png"
+
+AVATAR_MAP = {
+    "aris_nexus": "avatars/aris_nexus.png",
+    "quantum_arc": "avatars/quantum_arc.png",
+    "neural_pulse": "avatars/neural_pulse.png",
+    "titan_monolith": "avatars/titan_monolith.png",
+}
+
+
+def get_assistant_settings(user_id: str, db_path: str = DB_PATH) -> Dict[str, Any]:
+    """Retrieve customized assistant display name and avatar configuration for a user."""
+    default_res = {
+        "assistant_name": DEFAULT_ASSISTANT_NAME,
+        "avatar_type": DEFAULT_AVATAR_TYPE,
+        "custom_avatar_path": None,
+        "avatar_image_path": DEFAULT_AVATAR_PATH,
+    }
+    if not user_id:
+        return default_res
+
+    init_db(db_path)
+    with closing(get_connection(db_path)) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM assistant_settings WHERE user_id = ?", (user_id,))
+        row = cursor.fetchone()
+        if not row:
+            return default_res
+
+        name = (row["assistant_name"] or "").strip() or DEFAULT_ASSISTANT_NAME
+        av_type = row["avatar_type"] or DEFAULT_AVATAR_TYPE
+        custom_path = row["custom_avatar_path"]
+
+        # Determine resolved avatar image path on disk
+        if av_type == "custom" and custom_path and os.path.exists(custom_path):
+            img_path = custom_path
+        elif av_type in AVATAR_MAP and os.path.exists(AVATAR_MAP[av_type]):
+            img_path = AVATAR_MAP[av_type]
+        else:
+            img_path = DEFAULT_AVATAR_PATH
+
+        return {
+            "assistant_name": name,
+            "avatar_type": av_type,
+            "custom_avatar_path": custom_path,
+            "avatar_image_path": img_path,
+        }
+
+
+def save_assistant_settings(
+    user_id: str,
+    assistant_name: str,
+    avatar_type: str,
+    custom_avatar_path: Optional[str] = None,
+    db_path: str = DB_PATH
+) -> None:
+    """Persist customized assistant name and avatar selection for a specific user."""
+    if not user_id:
+        return
+
+    init_db(db_path)
+    clean_name = assistant_name.strip() or DEFAULT_ASSISTANT_NAME
+
+    with closing(get_connection(db_path)) as conn:
+        with conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO assistant_settings (user_id, assistant_name, avatar_type, custom_avatar_path, updated_at)
+                VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    assistant_name = excluded.assistant_name,
+                    avatar_type = excluded.avatar_type,
+                    custom_avatar_path = excluded.custom_avatar_path,
+                    updated_at = CURRENT_TIMESTAMP
+            """, (user_id, clean_name, avatar_type, custom_avatar_path))
+
+
+def reset_assistant_settings(user_id: str, db_path: str = DB_PATH) -> None:
+    """Reset assistant name and avatar back to original ARIS defaults."""
+    if not user_id:
+        return
+
+    init_db(db_path)
+    with closing(get_connection(db_path)) as conn:
+        with conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM assistant_settings WHERE user_id = ?", (user_id,))
+

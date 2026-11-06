@@ -13,25 +13,46 @@ import module4_roadmap as m4
 
 # -----------------------------------------------------------------------------
 # 1. APPROXIMATE STUDY HOURS PER SKILL
-# Note: These are hand-written rough estimates of hours required to learn
-# the fundamental concepts of each skill for a motivated beginner/intermediate.
+# Comprehensive estimates across Software, Data, AI/ML, Cloud, DevOps, Security
 # -----------------------------------------------------------------------------
 HOURS = {
-    # Core Programming & Data Handling
+    # Core Programming & Web Development
     "python": 15,
     "numpy": 8,
     "pandas": 10,
     "sql": 12,
+    "html": 8,
+    "css": 8,
+    "javascript": 15,
+    "typescript": 10,
+    "react": 18,
+    "next.js": 12,
+    "tailwind css": 6,
+    "redux": 8,
+    "node.js": 15,
+    "express": 8,
+    "fastapi": 10,
+    "django": 15,
+    "spring boot": 18,
+    "rest apis": 8,
+    "graphql": 10,
+    "microservices": 15,
+    "redis": 8,
 
-    # Classical Machine Learning
+    # Classical Machine Learning & Data Science
     "scikit-learn": 20,
     "basic ml": 15,
+    "machine learning": 18,
     "classification": 10,
     "regression": 10,
     "clustering": 8,
     "decision trees": 8,
     "data preprocessing": 10,
     "feature engineering": 12,
+    "statistics": 12,
+    "excel": 8,
+    "power bi": 12,
+    "tableau": 12,
 
     # Deep Learning & Modern AI
     "deep learning": 25,
@@ -42,29 +63,79 @@ HOURS = {
     "neural networks": 15,
     "computer vision": 20,
     "reinforcement learning": 25,
+    "generative ai": 15,
+    "prompt engineering": 6,
+    "llms": 15,
+    "langchain": 12,
+    "vector databases": 10,
+    "mlops": 15,
 
-    # Data Visualization & Tooling
-    "matplotlib": 6,
-    "seaborn": 6,
-    "git": 6,
-    "docker": 10,
-
-    # Big Data & Alternative Languages
-    "java": 20,
+    # Data Engineering & Warehousing
+    "data modeling": 10,
+    "data warehousing": 12,
+    "dbt": 10,
+    "etl pipelines": 12,
     "hadoop": 15,
     "spark": 15,
-    "r": 15,
-    "c++": 25,
+    "postgresql": 10,
+    "mysql": 10,
+    "mongodb": 10,
 
-    # Cloud & Deployment
+    # Cloud, DevOps & Systems
+    "linux": 12,
+    "git": 6,
+    "docker": 10,
+    "kubernetes": 20,
     "aws": 15,
     "azure": 15,
     "gcp": 15,
+    "terraform": 12,
     "ci/cd": 10,
-    "powerbi": 10,
-    "tableau": 10,
-    "mongodb": 10,
-    "nosql": 10,
+    "ansible": 10,
+    "prometheus": 8,
+    "grafana": 6,
+    "sre": 12,
+    "bash": 8,
+
+    # Cybersecurity & Networks
+    "networking": 15,
+    "security fundamentals": 12,
+    "cybersecurity": 15,
+    "siem tools": 15,
+    "wireshark": 8,
+    "incident response": 12,
+    "penetration testing": 20,
+    "ethical hacking": 20,
+    "soc analyst": 15,
+    "cloud security": 15,
+    "cryptography": 12,
+    "iam": 8,
+
+    # Mobile & QA Testing
+    "react native": 18,
+    "flutter": 18,
+    "android development": 20,
+    "ios development": 20,
+    "kotlin": 15,
+    "swift": 15,
+    "software testing": 10,
+    "qa automation": 15,
+    "playwright": 10,
+    "cypress": 10,
+    "api testing": 8,
+
+    # Embedded, Blockchain & Systems
+    "c": 18,
+    "c++": 25,
+    "c#": 18,
+    "java": 20,
+    "embedded systems": 20,
+    "microcontrollers": 15,
+    "iot": 15,
+    "blockchain": 18,
+    "solidity": 15,
+    "web3": 12,
+    "system administration": 12,
 }
 
 # Fallback hours for any unrecognized or niche skill
@@ -235,192 +306,21 @@ def make_schedule(roadmap_steps, hours_per_day, days_per_week, start_date):
 
 
 # -----------------------------------------------------------------------------
-# 4. RULE-BASED STUDY ASSISTANT (Keyword Matching)
-# Keyword matching on the user's latest analysis in st.session_state.
+# 4. UNIFIED STUDY ASSISTANT (Delegates to ARIS Intelligent Backend)
+# Provides intelligent responses via aris_assistant, avoiding conflicting handlers.
 # -----------------------------------------------------------------------------
-def get_study_assistant_response(query, analysis_results, schedule_context=None):
+def get_study_assistant_response(query, analysis_results=None, schedule_context=None, chat_history=None, user_profile=None):
     """
-    Generate rule-based answers to study questions based on analysis_results.
-    
-    Parameters:
-    - query: str, user question.
-    - analysis_results: dict from st.session_state["analysis_results"], or None.
-    - schedule_context: tuple (weeks, total_weeks, hours_per_day, days_per_week) or None.
-    
-    Returns:
-    - str response.
+    Unified Study Assistant interface delegated directly to ARIS AI Assistant.
+    Ensures no conflicting responses, duplicate response boxes, or legacy canned responses.
     """
-    # Guard: If no analysis exists, return exact specified message
-    if not analysis_results:
-        return "Click Analyze first."
-
-    if not query or not query.strip():
-        return "How can I help you with your learning roadmap? Ask me what to learn first, why a skill was chosen, or how long your plan will take."
-
-    q = query.strip().lower()
-
-    # Extract roadmap and gap analysis components
-    gap_results = analysis_results.get("gap_results", {})
-    main_roadmap = analysis_results.get("main_roadmap", [])
-    optional_roadmap = analysis_results.get("optional_roadmap", [])
-    all_roadmap_items = main_roadmap + optional_roadmap
-    group_name = analysis_results.get("group_name", "Target Group")
-
-    # -------------------------------------------------------------------------
-    # Case 1: "what first" / "what next"
-    # -------------------------------------------------------------------------
-    if any(k in q for k in ["what first", "first step", "learn first", "start with", "what next", "where to start", "where do i start", "what's next"]):
-        if main_roadmap:
-            first_step = main_roadmap[0]
-            skill_name = first_step["skill"]
-            demand = first_step.get("demand_pct", 0.0)
-            is_prereq = first_step.get("is_unmet_prereq", False)
-
-            if is_prereq:
-                reason = f"It was added as an essential prerequisite that unlocks subsequent algorithms in your curriculum (Market Demand: {demand:.1f}%)."
-            else:
-                reason = f"It has the highest market demand ({demand:.1f}%) among your unmastered core skills."
-
-            res_title, res_url = m4.get_skill_resource(skill_name)
-            return (
-                f"🎯 **Start with {skill_name.title()}!**\n\n"
-                f"**Why this first?** {reason}\n\n"
-                f"📖 Free Resource: [{res_title}]({res_url})"
-            )
-        else:
-            return "🎉 You have mastered all core skills in this track! You can proceed to explore optional specialized technologies."
-
-    # -------------------------------------------------------------------------
-    # Case 2: "why <skill>"
-    # -------------------------------------------------------------------------
-    if q.startswith("why ") or "why should i learn" in q or "why is" in q or "why do i need" in q or "reason for" in q:
-        # Find which skill is mentioned in the query
-        found_item = None
-        for item in all_roadmap_items:
-            if item["skill"].lower() in q:
-                found_item = item
-                break
-
-        # Also check matched skills (already known)
-        if not found_item and gap_results.get("matched_skills"):
-            for rank, matched_s, pct in gap_results["matched_skills"]:
-                if matched_s.lower() in q:
-                    return f"💡 **{matched_s.title()}** is already in your skill profile! You have mastered it, so it is omitted from your learning roadmap."
-
-        if found_item:
-            skill_name = found_item["skill"]
-            demand = found_item.get("demand_pct", 0.0)
-            is_prereq = found_item.get("is_unmet_prereq", False)
-
-            if is_prereq:
-                # Look up dependents in PREREQUISITES
-                dependents = [
-                    parent for parent, reqs in m4.PREREQUISITES.items()
-                    if skill_name in reqs
-                ]
-                dep_str = ", ".join(d.title() for d in dependents[:3]) if dependents else "advanced ML libraries"
-                return (
-                    f"💡 **Why learn {skill_name.title()}?**\n\n"
-                    f"**Prerequisite reason:** {skill_name.title()} is a fundamental building block required before studying **{dep_str}**. "
-                    f"Additionally, it holds a **{demand:.1f}% market demand** across {group_name} job postings."
-                )
-            else:
-                return (
-                    f"📈 **Why learn {skill_name.title()}?**\n\n"
-                    f"**Market Demand:** {skill_name.title()} appears in **{demand:.1f}%** of target job postings for **{group_name}**, "
-                    f"making it a high-impact core capability for data science and AI roles."
-                )
-        else:
-            return (
-                "Please specify a skill from your roadmap to understand why it was selected. "
-                "For example: *'Why numpy?'* or *'Why scikit-learn?'*"
-            )
-
-    # -------------------------------------------------------------------------
-    # Case 3: "how long" / "weeks" / "hours" / "time"
-    # -------------------------------------------------------------------------
-    if any(k in q for k in ["how long", "how many weeks", "weeks", "duration", "how much time", "total hours", "time estimate"]):
-        total_hours = sum(HOURS.get(item["skill"].lower().strip(), DEFAULT_HOURS) for item in all_roadmap_items)
-        skill_count = len(all_roadmap_items)
-
-        if schedule_context:
-            weeks_list, total_weeks, h_day, d_week = schedule_context
-            return (
-                f"⏱️ **Roadmap Duration Estimate:**\n\n"
-                f"• Total curriculum: **{total_hours} study hours** across **{skill_count} skills**.\n"
-                f"• At your current pace of **{h_day} hours/day** for **{d_week} days/week** ({h_day * d_week}h/week):\n"
-                f"• Estimated timeline: **{total_weeks} weeks** to complete."
-            )
-        else:
-            default_weekly_hours = 10  # 2h/day * 5 days
-            est_weeks = math.ceil(total_hours / default_weekly_hours) if total_hours > 0 else 0
-            return (
-                f"⏱️ **Roadmap Duration Estimate:**\n\n"
-                f"• Total curriculum: **{total_hours} study hours** across **{skill_count} skills**.\n"
-                f"• At a standard pace of 2 hours/day (5 days/week = 10h/week), this roadmap takes approximately **{est_weeks} weeks** to complete.\n"
-                f"*(Configure your daily hours and generate a schedule in the Study Planner tab above for your exact timeline!)*"
-            )
-
-    # -------------------------------------------------------------------------
-    # Case 4: "schedule" / "routine" / "plan"
-    # -------------------------------------------------------------------------
-    if any(k in q for k in ["schedule", "routine", "plan", "calendar", "study routine"]):
-        if schedule_context:
-            weeks_list, total_weeks, h_day, d_week = schedule_context
-            preview_lines = []
-            for w in weeks_list[:2]:  # Show first 2 weeks
-                preview_lines.append(f"**{w['label']}:**")
-                for d in w["days"][:3]:  # Show up to 3 days
-                    preview_lines.append(f"  • {d['entry']}")
-            preview_str = "\n".join(preview_lines)
-            return (
-                f"📅 **Your Study Routine ({total_weeks} Total Weeks):**\n\n"
-                f"{preview_str}\n\n"
-                f"*(See the week-by-week table above for your full day-by-day timetable.)*"
-            )
-        else:
-            return (
-                "📅 Click the **Generate schedule** button in the Study Planner tab above to calculate your day-by-day timetable!"
-            )
-
-    # -------------------------------------------------------------------------
-    # Case 5: "what is <skill>" or "resource"
-    # -------------------------------------------------------------------------
-    if any(k in q for k in ["what is", "what's", "tell me about", "resource for", "resource", "tutorial", "link"]):
-        # Find if any known skill is referenced in query
-        target_skill = None
-        for skill_key in list(SKILL_DESCRIPTIONS.keys()) + [item["skill"].lower() for item in all_roadmap_items]:
-            # Use word boundary search
-            if re.search(r"\b" + re.escape(skill_key) + r"\b", q):
-                target_skill = skill_key
-                break
-
-        if target_skill:
-            desc = SKILL_DESCRIPTIONS.get(
-                target_skill,
-                f"Specialized data science and machine learning technology required for {target_skill.title()}."
-            )
-            res_title, res_url = m4.get_skill_resource(target_skill)
-            return (
-                f"ℹ️ **{target_skill.title()}**\n\n"
-                f"{desc}\n\n"
-                f"📖 **Free Resource:** [{res_title}]({res_url})"
-            )
-        else:
-            return (
-                "Please specify which skill you'd like to learn about. "
-                "For example: *'What is pandas?'* or *'Resource for scikit-learn'*"
-            )
-
-    # -------------------------------------------------------------------------
-    # Case 6: Anything else -> Polite list of capabilities
-    # -------------------------------------------------------------------------
-    return (
-        "🤖 **Study Assistant Capabilities:**\n\n"
-        "I can answer questions based on your personalized roadmap and study plan. Try asking:\n"
-        "• *'What should I learn first?'* or *'What is next?'*\n"
-        "• *'Why should I learn <skill>?'* (e.g. *'Why numpy?'* or *'Why sql?'*)\n"
-        "• *'How long will it take?'* or *'How many weeks?'*\n"
-        "• *'What is my study schedule?'* or *'Show routine'*\n"
-        "• *'What is <skill>?'* or *'Resource for <skill>?'* (e.g. *'What is scikit-learn?'*)"
+    import aris_assistant
+    return aris_assistant.get_aris_response(
+        query=query,
+        chat_history=chat_history or [],
+        assistant_name="Aris",
+        analysis_results=analysis_results,
+        schedule_context=schedule_context,
+        user_profile=user_profile,
     )
+

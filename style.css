@@ -913,3 +913,215 @@ hr {
     margin-bottom: 12px;
 }
 
+/* -------------------------------------------------------------------------
+   16. ARIS INTELLIGENT ASSISTANT (Jarvis-Inspired Futuristic UI)
+   ------------------------------------------------------------------------- */
+.aris-header-card {
+    background: #3A1422;
+    border: 1px solid #572536;
+    border-left: 4px solid #D6B875;
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.aris-avatar-frame {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 2px solid #D6B875;
+    box-shadow: 0 0 14px rgba(214, 184, 117, 0.28);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: #200810;
+    flex-shrink: 0;
+}
+
+.aris-avatar-frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.aris-header-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex-grow: 1;
+}
+
+.aris-header-title-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.aris-display-name {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: #F5EFE6;
+    letter-spacing: 0.02em;
+}
+
+.aris-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 12px;
+    background: rgba(214, 184, 117, 0.12);
+    color: #D6B875;
+    border: 1px solid rgba(214, 184, 117, 0.3);
+    letter-spacing: 0.03em;
+}
+
+.aris-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #D6B875;
+    box-shadow: 0 0 6px #D6B875;
+}
+
+.aris-header-subtitle {
+    font-size: 0.84rem;
+    color: #BFAAB2;
+    margin: 0;
+    line-height: 1.4;
+}
+
+.aris-preview-card {
+    background: #2D0F1C;
+    border: 1px solid #572536;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.aris-preview-avatar {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    border: 2px solid #D6B875;
+    box-shadow: 0 0 16px rgba(214, 184, 117, 0.35);
+    overflow: hidden;
+    margin-bottom: 4px;
+    background: #200810;
+}
+
+.aris-preview-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.aris-preview-name {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #F5EFE6;
+}
+
+.aris-preview-sub {
+    font-size: 0.75rem;
+    color: #BFAAB2;
+}
+
+/* -------------------------------------------------------------------------
+   15. CAREER ROLES & STAGED LEARNING JOURNEY STYLES
+   ------------------------------------------------------------------------- */
+.career-role-header {
+    background: linear-gradient(135deg, #3A1422 0%, #290C18 100%);
+    border: 1px solid #572536;
+    border-left: 4px solid #D6B875;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+}
+
+.career-role-header .role-category-badge {
+    display: inline-block;
+    background: rgba(214, 184, 117, 0.15);
+    color: #D6B875;
+    border: 1px solid rgba(214, 184, 117, 0.35);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+}
+
+.career-role-header h3 {
+    margin: 4px 0 6px 0;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.5rem;
+    color: #F5EFE6;
+    font-weight: 700;
+}
+
+.career-role-header p {
+    margin: 0;
+    font-size: 0.88rem;
+    color: #BFAAB2;
+    line-height: 1.45;
+}
+
+.stage-section-header {
+    background: #2D0F1C;
+    border: 1px solid #572536;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 24px 0 12px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.stage-section-header h4 {
+    margin: 0;
+    color: #F5EFE6;
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.stage-section-header .stage-pill {
+    background: rgba(201, 143, 158, 0.18);
+    color: #C98F9E;
+    border: 1px solid rgba(201, 143, 158, 0.35);
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.practice-project-box {
+    background: rgba(43, 11, 22, 0.6);
+    border-left: 2px solid #C98F9E;
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin: 8px 0;
+    font-size: 0.82rem;
+    color: #F5EFE6;
+}
+
+.practice-project-box strong {
+    color: #D6B875;
+}
+
+
+
